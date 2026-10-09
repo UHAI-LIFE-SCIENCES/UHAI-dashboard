@@ -1,0 +1,59 @@
+/* ==========================================================================
+   UHAI DESIGN TOKENS AND SHARED COMPONENTS
+   Loaded by both the public website (site.css) and the dashboard (dashboard.css).
+   ========================================================================== */
+
+:root {
+  --purple: #880275;
+  --purple-deep: #5f0152;
+  --purple-ink: #3a0032;
+  --purple-light: #f8eaf7;
+  --purple-line: #ecd2e8;
+  --pink: #fe1980;
+  --pink-deep: #d40062;     /* pink for text / button fill (AA on white) */
+  --pink-light: #fff0f7;
+  --ink: #241f24;
+  --ink-2: #4a434c;
+  --muted: #6b6470;
+  --line: #e9e3e8;
+  --surface: #ffffff;
+  --tint: #fbf7fa;
+
+  --font: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  --font-display: Manrope, Inter, 'Segoe UI', system-ui, sans-serif;
+  --wrap: 1200px;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Buttons & links -------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 600 1rem/1 var(--font); padding: 13px 22px; min-height: 46px; border-radius: 999px;
+  border: 2px solid transparent; text-decoration: none; cursor: pointer;
+  transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.btn svg { width: 16px; height: 16px; transition: transform .2s var(--ease); }
+.btn:hover { transform: translateY(-2px); }
+.btn:hover svg { transform: translateX(2px); }
+.btn:active { transform: translateY(0) scale(.98); box-shadow: none; }
+.btn--lg { font-size: 1.05rem; padding: 15px 26px; min-height: 52px; }
+.btn--primary { background: var(--purple); color: #fff; box-shadow: 0 6px 16px rgba(136, 2, 117, .22); }
+.btn--primary:hover { background: var(--purple-deep); color: #fff; box-shadow: 0 10px 22px rgba(136, 2, 117, .28); }
+.btn--outline { background: #fff; color: var(--purple); border-color: var(--purple); }
+.btn--outline:hover { background: var(--purple-light); color: var(--purple-deep); }
+.btn--light { background: #fff; color: var(--purple); }
+.btn--light:hover { background: var(--pink-light); color: var(--purple-deep); }
+.btn--ghost-light { color: #fff; border-color: rgba(255, 255, 255, .7); }
+.btn--ghost-light:hover { background: rgba(255, 255, 255, .12); color: #fff; border-color: #fff; }
+.btn[disabled] { opacity: .6; cursor: progress; transform: none; }
+
+.text-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none; color: var(--purple); }
+.text-link .arrow, .explore__title .arrow { width: 18px; height: 18px; transition: transform .2s var(--ease); }
+.text-link:hover .arrow { transform: translateX(4px); }
+

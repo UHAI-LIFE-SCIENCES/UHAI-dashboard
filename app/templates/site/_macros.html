@@ -1,0 +1,47 @@
+{# Responsive photo with fixed aspect ratio (no layout shift) and a set focal point #}
+{% macro photo(c, key, sizes='(max-width: 900px) 100vw, 50vw', eager=False, cls='') -%}
+{%- set p = c.PHOTOS[key] -%}
+<img class="photo {{ cls }}"
+     src="{{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') }}"
+     srcset="{{ url_for('static', filename='img/photos/' ~ key ~ '-sm.jpg') }} 800w, {{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') }} {{ p.w }}w"
+     sizes="{{ sizes }}" width="{{ p.w }}" height="{{ p.h }}" alt="{{ p.alt }}"
+     style="object-position: {{ p.focus }}"
+     {% if eager %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}>
+{%- endmacro %}
+
+{# A gallery tile that opens the lightbox #}
+{% macro tile(c, key, index, cls='') -%}
+{%- set p = c.PHOTOS[key] -%}
+<figure class="tile {{ cls }} reveal">
+    <button type="button" class="tile__btn" data-lightbox-open="{{ index }}" aria-label="Open larger photo: {{ p.caption }}">
+        {{ photo(c, key, '(max-width: 700px) 100vw, 40vw') }}
+        <span class="tile__overlay" aria-hidden="true">
+            <span class="tile__zoom"><svg viewBox="0 0 20 20"><path d="M8.5 3a5.5 5.5 0 1 0 3.4 9.8l3.7 3.7 1.1-1.1-3.7-3.7A5.5 5.5 0 0 0 8.5 3zm0 1.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM7.7 6v1.7H6v1.6h1.7V11h1.6V9.3H11V7.7H9.3V6z" fill="currentColor"/></svg></span>
+        </span>
+    </button>
+    <figcaption>{{ p.caption }}</figcaption>
+</figure>
+{%- endmacro %}
+
+{# Lightbox dialog; gallery data read by site.js #}
+{% macro lightbox(c, keys) -%}
+<dialog class="lightbox" data-lightbox aria-label="Photo viewer">
+    <div class="lightbox__frame">
+        <img class="lightbox__img" alt="" data-lightbox-img>
+        <p class="lightbox__caption"><span data-lightbox-caption></span> <span class="lightbox__count" data-lightbox-count></span></p>
+    </div>
+    <button type="button" class="lightbox__btn lightbox__btn--prev" data-lightbox-prev aria-label="Previous photo">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" class="lightbox__btn lightbox__btn--next" data-lightbox-next aria-label="Next photo">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button type="button" class="lightbox__close" data-lightbox-close aria-label="Close photo viewer">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+</dialog>
+<script type="application/json" data-gallery>
+[{% for key in keys %}{"src": {{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') | tojson }}, "alt": {{ c.PHOTOS[key].alt | tojson }}, "caption": {{ c.PHOTOS[key].caption | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]
+</script>
+{%- endmacro %}
+
+{% macro arrow() -%}
+<svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+{%- endmacro %}

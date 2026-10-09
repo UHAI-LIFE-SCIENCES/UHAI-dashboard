@@ -1,0 +1,150 @@
+{
+  "_note": "Indicator catalogue shared by the Flask API (explore.py) and the offline mock (mock_data.js). Labels and allowed breakdowns live here; SQL lives in explore.py.",
+  "dims": {
+    "sourcing": {
+      "month": { "label": "Month", "time": "month" },
+      "week": { "label": "Week", "time": "week" },
+      "blood_group": { "label": "Blood group" },
+      "collection": { "label": "Collection type" },
+      "donor_type": { "label": "Donor type" },
+      "sex": { "label": "Donor sex" },
+      "age_group": { "label": "Donor age group", "ordinal": true },
+      "weekday": { "label": "Day of week", "ordinal": true }
+    },
+    "processing": {
+      "blood_group": { "label": "Blood group" },
+      "channel": { "label": "Collection channel" },
+      "screening": { "label": "TTI screening result" },
+      "discard_reason": { "label": "Discard status / reason" },
+      "component": { "label": "Component" }
+    },
+    "distributions": {
+      "month": { "label": "Month", "time": "month" },
+      "week": { "label": "Week", "time": "week" },
+      "facility": { "label": "Recipient facility", "map": true },
+      "product": { "label": "Product" },
+      "status": { "label": "Outcome / status" },
+      "turnaround": { "label": "Order-to-receipt time", "ordinal": true }
+    },
+    "transfusions": {
+      "month": { "label": "Month", "time": "month" },
+      "week": { "label": "Week", "time": "week" },
+      "blood_group": { "label": "Patient blood group" },
+      "product": { "label": "Product requested" },
+      "reason": { "label": "Reason for transfusion" },
+      "fulfilment": { "label": "Fulfilment status" },
+      "age_group": { "label": "Patient age group", "ordinal": true },
+      "sex": { "label": "Patient sex" },
+      "outcome": { "label": "Transfusion outcome" }
+    }
+  },
+  "indicators": {
+    "donations": {
+      "section": "sourcing", "table": "sourcing", "label": "Donations recorded", "unit": "donations", "axis": "Donations",
+      "description": "Each record in the sourcing table is one donation. Donor IDs are unique per record, so repeat donors cannot be counted separately.",
+      "measures": [{ "key": "donations", "label": "Donations" }],
+      "dims": ["month", "week", "blood_group", "collection", "donor_type", "sex", "age_group", "weekday"], "default_by": "month"
+    },
+    "volume_donated": {
+      "section": "sourcing", "table": "sourcing", "label": "Volume of blood donated", "unit": "litres", "axis": "Litres",
+      "description": "Sum of volume_donated_(ml) converted to litres.",
+      "measures": [{ "key": "volume", "label": "Volume (L)" }],
+      "dims": ["month", "week", "blood_group", "collection", "donor_type"], "default_by": "month"
+    },
+    "voluntary_share": {
+      "section": "sourcing", "table": "sourcing", "label": "Voluntary donations (share)", "unit": "%", "axis": "% of donations", "ratio": true,
+      "description": "Share of donations recorded as voluntary rather than family / replacement.",
+      "measures": [{ "key": "share", "label": "Voluntary share" }],
+      "dims": ["month", "week", "blood_group", "collection", "sex", "age_group"], "default_by": "month"
+    },
+
+    "units_received": {
+      "section": "processing", "table": "processing", "label": "Donated units received for processing", "unit": "units", "axis": "Units",
+      "description": "Each record in the processing table is one donated unit. Processing records carry no date, so these figures cover the whole log.",
+      "measures": [{ "key": "units", "label": "Units received" }],
+      "dims": ["channel", "blood_group", "screening", "discard_reason"], "default_by": "channel"
+    },
+    "components": {
+      "section": "processing", "table": "processing", "label": "Blood components produced", "unit": "components", "axis": "Components",
+      "description": "Sum of the prbc, ffp, platelets and cryoprecipitate unit columns. One donation can yield several components.",
+      "measures": [{ "key": "components", "label": "Components" }],
+      "dims": ["component", "blood_group", "channel"], "default_by": "component"
+    },
+    "reactive_share": {
+      "section": "processing", "table": "processing", "label": "Reactive TTI screening results (share)", "unit": "%", "axis": "% of units", "ratio": true,
+      "description": "Share of units with a reactive transfusion-transmissible infection (TTI) screening result. A reactive screen is not a confirmed infection; confirmatory testing is not recorded.",
+      "measures": [{ "key": "share", "label": "Reactive share" }],
+      "dims": ["channel", "blood_group"], "default_by": "channel"
+    },
+    "discard_share": {
+      "section": "processing", "table": "processing", "label": "Units discarded (share)", "unit": "%", "axis": "% of units", "ratio": true,
+      "description": "Share of units with is_discarded = Yes, for any reason (reactive screen, shelf life, storage or handling).",
+      "measures": [{ "key": "share", "label": "Discarded share" }],
+      "dims": ["channel", "blood_group"], "default_by": "channel"
+    },
+
+    "units_distributed": {
+      "section": "distribution", "table": "distributions", "label": "Units distributed", "unit": "units", "axis": "Units",
+      "description": "Sum of quantity_(units) issued to recipient facilities, dated by date_blood_ordered.",
+      "measures": [{ "key": "units", "label": "Units distributed" }],
+      "dims": ["month", "week", "facility", "product", "status"], "default_by": "facility"
+    },
+    "orders": {
+      "section": "distribution", "table": "distributions", "label": "Distribution orders", "unit": "orders", "axis": "Orders",
+      "description": "Number of distribution records. One order can carry several units.",
+      "measures": [{ "key": "orders", "label": "Orders" }],
+      "dims": ["month", "week", "facility", "product", "status", "turnaround"], "default_by": "month"
+    },
+    "mean_turnaround": {
+      "section": "distribution", "table": "distributions", "label": "Mean order-to-receipt time", "unit": "days", "axis": "Days", "ratio": true,
+      "description": "Average of turnaround_time_(days): days between date_blood_ordered and date_blood_received.",
+      "measures": [{ "key": "days", "label": "Mean days" }],
+      "dims": ["month", "week", "facility", "product"], "default_by": "facility"
+    },
+    "facility_returns": {
+      "section": "distribution", "table": "distributions", "label": "Units distributed vs share returned unused, by facility", "kind": "scatter",
+      "unit": "", "axis": "",
+      "description": "Each point is one recipient facility. Use it to see whether facilities that receive more blood also return more of it unused.",
+      "measures": [
+        { "key": "units", "label": "Units distributed", "unit": "units" },
+        { "key": "returned", "label": "Orders returned unused (%)", "unit": "%" }
+      ],
+      "dims": ["facility"], "default_by": "facility"
+    },
+
+    "requests": {
+      "section": "transfusions", "table": "transfusions", "label": "Transfusion requests", "unit": "requests", "axis": "Requests",
+      "description": "Number of patient transfusion requests, dated by date_blood_first_ordered.",
+      "measures": [{ "key": "requests", "label": "Requests" }],
+      "dims": ["month", "week", "blood_group", "product", "reason", "fulfilment", "age_group", "sex", "outcome"], "default_by": "fulfilment"
+    },
+    "units_requested_given": {
+      "section": "transfusions", "table": "transfusions", "label": "Units requested and units given", "unit": "units", "axis": "Units",
+      "description": "quantity_requested compared with quantity_given. The gap between them is unmet demand.",
+      "measures": [{ "key": "requested", "label": "Units requested" }, { "key": "given", "label": "Units given" }],
+      "dims": ["month", "week", "blood_group", "product", "reason", "age_group"], "default_by": "month"
+    },
+    "fulfilment_rate": {
+      "section": "transfusions", "table": "transfusions", "label": "Fulfilment rate", "unit": "%", "axis": "% of units requested", "ratio": true,
+      "description": "Units given ÷ units requested.",
+      "measures": [{ "key": "rate", "label": "Fulfilment rate" }],
+      "dims": ["month", "week", "blood_group", "product", "reason", "age_group"], "default_by": "reason"
+    },
+    "mean_hb": {
+      "section": "transfusions", "table": "transfusions", "label": "Mean haemoglobin at request", "unit": "g/dL", "axis": "Hb (g/dL)", "ratio": true,
+      "description": "Average hb_level recorded with the transfusion request. Aggregated only; no individual results are shown.",
+      "measures": [{ "key": "hb", "label": "Mean Hb" }],
+      "dims": ["reason", "age_group", "blood_group", "sex", "month"], "default_by": "reason"
+    },
+    "reason_hb_fulfilment": {
+      "section": "transfusions", "table": "transfusions", "label": "Mean haemoglobin vs fulfilment rate, by reason for transfusion", "kind": "scatter",
+      "unit": "", "axis": "",
+      "description": "Each point is one reason for transfusion. Lower Hb indicates more severe anaemia at the time of the request.",
+      "measures": [
+        { "key": "hb", "label": "Mean Hb at request (g/dL)", "unit": "g/dL" },
+        { "key": "rate", "label": "Fulfilment rate (%)", "unit": "%" }
+      ],
+      "dims": ["reason"], "default_by": "reason"
+    }
+  }
+}

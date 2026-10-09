@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if page_title %}{{ page_title }} · {% endif %}UHAI Life Sciences</title>
+    <meta name="description" content="{% block description %}UHAI Life Sciences strengthens Kenya's blood supply chain through blood drives, predictive modelling and better data.{% endblock %}">
+    <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/uhai-base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+    <script>document.documentElement.classList.replace('no-js', 'js');</script>
+</head>
+<body class="page-{{ page }}">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    {% set nav = [
+        ('site_about', 'about', 'About UHAI'),
+        ('site_why', 'why', 'Why UHAI'),
+        ('site_faqs', 'faqs', 'FAQs'),
+        ('site_contact', 'contact', 'Contact'),
+    ] %}
+
+    <header class="nav" data-nav>
+        <div class="nav__inner">
+            <a class="nav__brand" href="{{ url_for('site_home') }}" aria-label="UHAI Life Sciences, home">
+                <img src="{{ url_for('static', filename=logo) }}" alt="" width="48" height="63">
+                <span class="nav__name">UHAI <span>Life Sciences</span></span>
+            </a>
+
+            <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="nav-menu" data-nav-toggle>
+                <span class="nav__toggle-bars" aria-hidden="true"></span>
+                <span class="nav__toggle-label">Menu</span>
+            </button>
+
+            <nav class="nav__menu" id="nav-menu" aria-label="Main">
+                <ul class="nav__links">
+                    {% for endpoint, key, label in nav %}
+                    <li><a href="{{ url_for(endpoint) }}" {% if page == key %}aria-current="page"{% endif %}>{{ label }}</a></li>
+                    {% endfor %}
+                </ul>
+                <a class="btn btn--primary nav__cta" href="{{ url_for('dashboard_page') }}">
+                    Go to Dashboard
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="wrap footer__grid">
+            <div class="footer__brand">
+                <img src="{{ url_for('static', filename=logo) }}" alt="UHAI logo" width="56" height="74" loading="lazy">
+                <p>Strengthening the blood supply chain, from donor to patient.<br>{{ c.LOCATION }}</p>
+            </div>
+            <div>
+                <h2 class="footer__title">Explore</h2>
+                <ul class="footer__links">
+                    <li><a href="{{ url_for('site_home') }}">Home</a></li>
+                    {% for endpoint, key, label in nav %}<li><a href="{{ url_for(endpoint) }}">{{ label }}</a></li>{% endfor %}
+                </ul>
+            </div>
+            <div>
+                <h2 class="footer__title">Data</h2>
+                <ul class="footer__links">
+                    <li><a href="{{ url_for('dashboard_page') }}">Blood Intelligence dashboard</a></li>
+                </ul>
+                <p class="footer__note">The dashboard currently uses synthetic, illustrative data.</p>
+            </div>
+        </div>
+        <div class="wrap footer__base">
+            <span>© UHAI Life Sciences</span>
+            <span>Supporting SDG 3, 10 and 17</span>
+        </div>
+    </footer>
+
+    {% block after %}{% endblock %}
+    <script src="{{ url_for('static', filename='js/site.js') }}" defer></script>
+</body>
+</html>

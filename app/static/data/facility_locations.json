@@ -1,0 +1,23 @@
+{
+  "_note": "APPROXIMATE town-level coordinates added for mapping. uhai_dashboard.db stores facility names only. Replace with surveyed facility coordinates (e.g. from the Kenya Master Health Facility List) before operational use.",
+  "precision": "approximate",
+  "blood_centre": {
+    "name": "Eldoret blood bank (ERBTC)",
+    "lat": 0.5200, "lng": 35.2760,
+    "note": "Assumed origin of all distributions; sourcing donor IDs carry the prefix ERBTC."
+  },
+  "facilities": {
+    "Moi Teaching and Referral Hospital (MTRH)": { "lat": 0.5148, "lng": 35.2700, "county": "Uasin Gishu" },
+    "Uasin Gishu County Hospital":              { "lat": 0.5185, "lng": 35.2840, "county": "Uasin Gishu" },
+    "Eldoret Hospital":                         { "lat": 0.5105, "lng": 35.2790, "county": "Uasin Gishu" },
+    "Mediheal Hospital Eldoret":                { "lat": 0.5230, "lng": 35.2890, "county": "Uasin Gishu" },
+    "Huruma Sub-County Hospital":               { "lat": 0.5330, "lng": 35.2560, "county": "Uasin Gishu" },
+    "Burnt Forest Sub-County Hospital":         { "lat": 0.4200, "lng": 35.4300, "county": "Uasin Gishu" },
+    "Turbo Sub-County Hospital":                { "lat": 0.6330, "lng": 35.0480, "county": "Uasin Gishu" },
+    "Ziwa Sub-County Hospital":                 { "lat": 0.7300, "lng": 35.2000, "county": "Uasin Gishu" },
+    "Kitale County Referral Hospital":          { "lat": 1.0160, "lng": 35.0060, "county": "Trans Nzoia" },
+    "Kapsabet County Referral Hospital":        { "lat": 0.2030, "lng": 35.1050, "county": "Nandi" },
+    "Kapenguria County Referral Hospital":      { "lat": 1.2390, "lng": 35.1120, "county": "West Pokot" },
+    "Iten County Referral Hospital":            { "lat": 0.6700, "lng": 35.5080, "county": "Elgeyo Marakwet" }
+  }
+}

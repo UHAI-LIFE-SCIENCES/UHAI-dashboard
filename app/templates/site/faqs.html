@@ -1,0 +1,64 @@
+{% extends "site/base.html" %}
+{% block description %}Answers to common questions about UHAI Life Sciences, blood drives, our technology and partnerships.{% endblock %}
+
+{% block content %}
+
+<section class="page-hero page-hero--plain">
+    <div class="wrap narrow">
+        <p class="eyebrow">FAQs</p>
+        <h1 class="h1">Questions people ask us</h1>
+        <p class="lead">Short answers about UHAI, blood drives, our technology and how to get involved.
+            Can't find what you need? <a href="{{ url_for('site_contact') }}">Ask us directly</a>.</p>
+    </div>
+</section>
+
+<section class="section section--tight">
+    <div class="wrap faq-layout">
+        <nav class="faq-nav" aria-label="FAQ topics">
+            <p class="faq-nav__title">Topics</p>
+            <ul>
+                {% for group, items in c.FAQS %}
+                <li><a href="#faq-{{ loop.index }}">{{ group }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        <div class="faq-groups">
+            {% for group, items in c.FAQS %}
+            {% set g = loop.index %}
+            <section class="faq-group" id="faq-{{ g }}" aria-labelledby="faq-{{ g }}-title">
+                <h2 class="h3" id="faq-{{ g }}-title">{{ group }}</h2>
+                <div class="accordion" data-accordion>
+                    {% for q, a, pending in items %}
+                    {% set id = 'faq-' ~ g ~ '-' ~ loop.index %}
+                    <div class="accordion__item">
+                        <h3 class="accordion__heading">
+                            <button type="button" class="accordion__btn" id="{{ id }}-btn" aria-expanded="false" aria-controls="{{ id }}-panel">
+                                <span>{{ q }}</span>
+                                <span class="accordion__icon" aria-hidden="true"></span>
+                            </button>
+                        </h3>
+                        <div class="accordion__panel" id="{{ id }}-panel" role="region" aria-labelledby="{{ id }}-btn" hidden>
+                            <div class="accordion__body">
+                                <p>{{ a }}</p>
+                                {% if pending %}<p class="pending">Full answer to be confirmed by UHAI.</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="cta cta--compact">
+    <div class="wrap cta__inner">
+        <h2 class="cta__title">Still have a question?</h2>
+        <div class="cta__actions">
+            <a class="btn btn--light btn--lg" href="{{ url_for('site_contact') }}">Contact UHAI</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

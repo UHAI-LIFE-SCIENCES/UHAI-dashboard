@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UHAI Blood Insights</title>
+    <meta name="description" content="Explore blood sourcing, processing, distribution and transfusion trends.">
+    <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Chart.js and Leaflet (pinned) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
+
+    <!-- Same design tokens and buttons as the public website -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/uhai-base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<!-- Config injected from environment variables by Flask (app.py). No secrets here. -->
+<body data-api-base="{{ api_base }}"
+      data-data-source="{{ data_source }}"
+      data-locations-url="{{ url_for('static', filename='data/facility_locations.json') }}"
+      data-catalog-url="{{ url_for('static', filename='data/indicators.json') }}">
+    <script>
+        window.UHAI_CONFIG = {
+            apiBase: document.body.dataset.apiBase,
+            dataSource: document.body.dataset.dataSource,
+            locationsUrl: document.body.dataset.locationsUrl,
+            catalogUrl: document.body.dataset.catalogUrl
+        };
+    </script>
+    <a class="skip-link" href="#view">Skip to data</a>
+
+    <header class="dh">
+        <div class="dh__top">
+            <a class="dh__brand" href="#/overview" aria-label="UHAI Blood Insights, overview">
+                <img src="{{ url_for('static', filename=logo) }}" alt="UHAI logo" width="40" height="53">
+                <span>
+                    <span class="dh__title">UHAI Blood Insights</span>
+                    <span class="dh__subtitle">Explore blood sourcing, processing, distribution, and transfusion trends.</span>
+                </span>
+            </a>
+            <div class="dh__meta">
+                <span class="badge badge--demo" title="Every record in uhai_dashboard.db is synthetic">Illustrative data</span>
+                <span id="source-pill" class="badge badge--source">Connecting…</span>
+                <a class="btn btn--outline btn--sm" href="{{ url_for('site_home') }}">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    UHAI website
+                </a>
+            </div>
+        </div>
+
+        <nav class="dn" aria-label="Dashboard sections">
+            <ul class="dn__list" id="tabs">
+                <li><a href="#/overview" data-route="overview">Overview</a></li>
+                <li><a href="#/sourcing" data-route="sourcing">Sourcing</a></li>
+                <li><a href="#/processing" data-route="processing">Processing</a></li>
+                <li><a href="#/distribution" data-route="distribution">Distribution</a></li>
+                <li><a href="#/transfusions" data-route="transfusions">Transfusions</a></li>
+                <li class="dn__more">
+                    <button type="button" class="dn__more-btn" aria-expanded="false" aria-controls="more-menu" data-more>
+                        More <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                    <ul class="dn__menu" id="more-menu" hidden>
+                        <li><a href="#/forecast" data-route="forecast">Forecast <span class="tag">Prototype</span></a></li>
+                        <li><a href="#/quality" data-route="quality">Data quality &amp; definitions</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <div id="source-banner" class="banner" hidden></div>
+    <section id="filters" class="fb" aria-label="Filters"></section>
+
+    <main id="view" class="view" tabindex="-1">
+        <div class="state state--loading"><span class="spinner" aria-hidden="true"></span> Loading…</div>
+    </main>
+
+    <footer class="df">
+        <span>© <a href="{{ url_for('site_home') }}">UHAI Life Sciences</a> · Blood Insights</span>
+        <span id="footer-source"></span>
+    </footer>
+
+    <!-- Data layer: mock and API are separate; pages only call UhaiData -->
+    <script src="{{ url_for('static', filename='js/services/api_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/services/mock_data.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/services/data_service.js') }}"></script>
+
+    <!-- Presentation -->
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/forecast_prototype.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/explorer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pages.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

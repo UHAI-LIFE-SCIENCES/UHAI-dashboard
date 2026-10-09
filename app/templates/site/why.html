@@ -1,0 +1,124 @@
+{% extends "site/base.html" %}
+{% from "site/_macros.html" import photo, arrow %}
+{% block description %}Why UHAI's work matters: the blood supply problem in Kenya and how UHAI addresses it.{% endblock %}
+
+{% set challenges = {
+    'access': ('Too few donors, too rarely', 'Donor mobilisation, recruitment and retention are inadequate, and collection targets are missed. Families are often asked to find replacement donors before a patient can be transfused.'),
+    'processing': ('Blood that cannot be relied on', 'Blood and blood products are not always reliably stored and transported, so donated units can be lost before they reach a patient.'),
+    'distribution': ('No clear picture of what is available', 'Without an inventory system, nobody can see how much blood is available or where. When blood is scarce, this opens the door to bias in who receives it.'),
+} %}
+
+{% block content %}
+
+<section class="page-hero page-hero--plain">
+    <div class="wrap narrow">
+        <p class="eyebrow">Why UHAI</p>
+        <h1 class="h1">Every day in Kenya, patients wait for blood that hasn't been collected, can't be found, or has expired.</h1>
+        <p class="lead">Supply is only part of the problem; the rest lies in the chain. UHAI addresses each link: getting donors in the door,
+            keeping blood safe once it is collected, and making sure it reaches the patient who needs it.</p>
+    </div>
+</section>
+
+<section class="section section--tint">
+    <div class="wrap">
+        <div class="facts">
+            <div class="fact reveal">
+                <span class="fact__value">{{ '{:,}'.format(c.NATIONAL_TARGET_PINTS) }}</span>
+                <span class="fact__label">pints of blood Kenya targets each year</span>
+            </div>
+            <div class="fact reveal">
+                <span class="fact__value">{{ '{:,}'.format(c.NATIONAL_DONATED_PINTS) }}</span>
+                <span class="fact__label">pints actually donated each year</span>
+            </div>
+            <div class="fact fact--accent reveal">
+                <span class="fact__value">4</span>
+                <span class="fact__label">systemic failures named in a 2022 Auditor General report</span>
+            </div>
+        </div>
+        <ul class="findings reveal">
+            {% for title, text in c.AUDITOR_FINDINGS %}<li><b>{{ title }}.</b> {{ text }}</li>{% endfor %}
+        </ul>
+        <p class="source">National figures and the Auditor General's findings are as cited in UHAI's 2025 investor pitch deck.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="wrap">
+        <div class="section-head reveal">
+            <p class="eyebrow">Problem to solution</p>
+            <h2 class="h2">How UHAI responds, link by link</h2>
+        </div>
+        <ol class="flow">
+            {% for p in c.PILLARS %}
+            {% set ch = challenges[p.key] %}
+            <li class="flow__row reveal">
+                <h3 class="flow__pillar"><span>0{{ loop.index }}</span>{{ p.title }}</h3>
+                <div class="flow__step flow__step--problem">
+                    <p class="flow__kicker">The challenge</p>
+                    <p class="flow__title">{{ ch[0] }}</p>
+                    <p>{{ ch[1] }}</p>
+                </div>
+                <div class="flow__step flow__step--approach">
+                    <p class="flow__kicker">UHAI's approach</p>
+                    <ul class="ticks">{% for a in p.activities %}<li>{{ a }}</li>{% endfor %}</ul>
+                </div>
+                <div class="flow__step flow__step--outcome">
+                    <p class="flow__kicker">Intended outcome</p>
+                    <p class="flow__title">{{ p.outcome }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+</section>
+
+<section class="section section--tint">
+    <div class="wrap split">
+        <figure class="framed reveal">
+            {{ photo(c, 'donor-registration', '(max-width: 900px) 100vw, 40vw') }}
+            <figcaption>{{ c.PHOTOS['donor-registration'].caption }}</figcaption>
+        </figure>
+        <div class="reveal">
+            <p class="eyebrow">Who benefits</p>
+            <h2 class="h2">The patients who depend on transfusion</h2>
+            <ul class="ticks ticks--lg">{% for a in c.AFFECTED %}<li>{{ a }}</li>{% endfor %}</ul>
+            <p class="prose">For people being treated for cancer, low haemoglobin can mean chemotherapy or radiotherapy is postponed.
+                That brings longer hospital stays, higher costs of care and greater risk. For trauma patients, a transfusion is the immediate remedy.</p>
+            <h3 class="h3 mt">What success looks like</h3>
+            <p class="prose">Fewer blood shortages, enough safe units for transfusion, shorter hospital stays and more lives saved.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="wrap">
+        <div class="section-head reveal">
+            <p class="eyebrow">Early results</p>
+            <h2 class="h2">What UHAI reports so far</h2>
+        </div>
+        <dl class="impact impact--3">
+            {% for item in c.IMPACT[2:] %}
+            <div class="impact__item reveal">
+                <dt><span class="impact__value">{{ item.value }}</span> <span class="impact__label">{{ item.label }}</span></dt>
+                <dd>{{ item.context }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+        <p class="source">{{ c.IMPACT_SOURCE }}</p>
+    </div>
+</section>
+
+<section class="cta">
+    <div class="wrap cta__inner reveal">
+        <div>
+            <h2 class="cta__title">Explore the data, or talk to us.</h2>
+            <p>See how a connected blood supply chain could look in the Blood Intelligence dashboard (illustrative data),
+                or get in touch to work with UHAI.</p>
+        </div>
+        <div class="cta__actions">
+            <a class="btn btn--light btn--lg" href="{{ url_for('dashboard_page') }}">Go to Dashboard</a>
+            <a class="btn btn--ghost-light btn--lg" href="{{ url_for('site_contact') }}">Contact UHAI</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
