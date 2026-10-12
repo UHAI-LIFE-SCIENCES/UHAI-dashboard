@@ -29,7 +29,7 @@ window.UhaiCharts = (function () {
   const ENTITY = {
     'O+': C0, 'A+': C1, 'B+': C2, 'O-': C3, 'AB+': C4, 'AB-': C5,
     'Whole Blood': C0, 'Whole Blood (450 mL)': C0, 'Whole Blood (350 mL)': C5,
-    'Red Cells': C1, 'Packed Red Blood Cells': C1,
+    'Packed Red Cells': C1, 'Packed Red Blood Cells': C1,
     'Plasma': C2, 'Fresh Frozen Plasma': C2, 'Apheresis Plasma': C2,
     'Platelets': C3, 'Platelet Concentrate': C3, 'Apheresis Platelets': C3,
     'Cryoprecipitate': C4,
@@ -37,7 +37,7 @@ window.UhaiCharts = (function () {
     'Voluntary': C0, 'Family / Replacement': C1,
     'Female': C2, 'Male': C3,
     'In-house Walk-in': C0, 'Mobile Drive': C2, 'Mobile Outreach': C3,
-    'Non-reactive': C0, 'Not Discarded': C0
+    'Non-reactive': C0, 'Not Discarded': C0, 'Cryoprecipitate': C4
   };
 
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -142,6 +142,30 @@ window.UhaiCharts = (function () {
     }
   };
 
+
+  // Text in the middle of a donut or gauge.
+  const centerText = {
+    id: 'uhaiCenter',
+    afterDatasetsDraw(chart, args, opts) {
+      if (!opts || !opts.lines) return;
+      const arc = chart.getDatasetMeta(0).data[0];
+      if (!arc) return;
+      const { ctx } = chart;
+      const y = opts.gauge ? arc.y - 14 : arc.y;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = opts.color || COLORS.ink;
+      ctx.font = `800 ${opts.gauge ? 30 : 22}px Manrope, Inter, system-ui, sans-serif`;
+      ctx.fillText(opts.lines[0], arc.x, y + (opts.gauge ? 0 : 2));
+      if (opts.lines[1]) {
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = '13px Inter, system-ui, sans-serif';
+        ctx.fillText(opts.lines[1], arc.x, y + 22);
+      }
+      ctx.restore();
+    }
+  };
+
   // Small text labels beside scatter points.
   const pointLabels = {
     id: 'uhaiPointLabels',
@@ -206,14 +230,14 @@ window.UhaiCharts = (function () {
     const onClick = (evt, els, chart) => {
       if (!spec.onSelect) return;
       let hit = els;
-      if (spec.type === 'line') hit = chart.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+      if (spec.type === 'line' || spec.type === 'area') hit = chart.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
       const i = hit && hit.length ? hit[0].index : null;
       // Defer: the selection redraw destroys this chart, which must not happen inside its own event dispatch
       setTimeout(() => spec.onSelect(i === sel ? null : i), 0);
     };
     const hoverCursor = (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
 
-    if (spec.type === 'pie') {
+    if (spec.type === 'pie' || spec.type === 'donut') {
       const colors = spec.categories.map((c, i) => colorFor(c, i));
       return draw(canvas, {
         type: 'pie',
@@ -227,12 +251,14 @@ window.UhaiCharts = (function () {
           }]
         },
         options: {
+          cutout: spec.type === 'donut' ? '58%' : 0,
           // Room for outside labels, scaled to the card width
           layout: { padding: (() => { const w = canvas.parentElement ? canvas.parentElement.clientWidth : 600; const side = Math.max(40, Math.min(160, w * 0.24)); return { top: 34, bottom: 34, left: side, right: side }; })() },
           onClick, onHover: hoverCursor,
           plugins: {
             legend: { display: false },
             uhaiPieLabels: { enabled: true, unit: spec.unit },
+            uhaiCenter: spec.type === 'donut' ? { lines: [fmt(spec.series[0].values.reduce((a, v) => a + (v || 0), 0), spec.unit), 'total'] } : null,
             tooltip: {
               callbacks: {
                 label: c => {
@@ -243,7 +269,7 @@ window.UhaiCharts = (function () {
             }
           }
         },
-        plugins: [pieLabels]
+        plugins: [pieLabels, centerText]
       });
     }
 
@@ -286,10 +312,13 @@ window.UhaiCharts = (function () {
     const multi = spec.series.length > 1;
     const horizontal = spec.type === 'bar' && spec.horizontal;
     const datasets = spec.series.map((s, si) => {
-      const base = s.color || (multi ? (si === 0 ? COLORS.pink : COLORS.purple) : COLORS.purple);
-      if (spec.type === 'line') {
+      // Comparison series: neutral grey for the first (e.g. requested), purple for the second; pink stays for alerts
+      const base = s.color || (multi ? (si === 0 ? '#A39AA6' : COLORS.purple) : COLORS.purple);
+      if (spec.type === 'line' || spec.type === 'area') {
         return {
-          label: s.label, data: s.values, borderColor: base, backgroundColor: base,
+          fill: spec.type === 'area' ? 'origin' : false,
+          label: s.label, data: s.values, borderColor: base,
+          backgroundColor: spec.type === 'area' ? alpha(base, multi ? 0.12 : 0.16) : base,
           borderWidth: 2.5, tension: 0.25, spanGaps: false,
           pointRadius: spec.categories.map((c, i) => i === sel ? 7 : (spec.categories.length > 30 ? 0 : 3.5)),
           pointHoverRadius: 7, pointBackgroundColor: spec.categories.map((c, i) => i === sel ? COLORS.pink : base),
@@ -311,7 +340,7 @@ window.UhaiCharts = (function () {
     const catAxis = categoryAxis(spec.categoryTitle, horizontal ? { ticks: { color: COLORS.ink, font: { size: 12.5 }, autoSkip: false } } : {});
 
     return draw(canvas, {
-      type: spec.type === 'line' ? 'line' : 'bar',
+      type: spec.type === 'line' || spec.type === 'area' ? 'line' : 'bar',
       data: { labels: spec.categories, datasets },
       options: {
         indexAxis: horizontal ? 'y' : 'x',
@@ -324,6 +353,146 @@ window.UhaiCharts = (function () {
         }
       }
     });
+  }
+
+
+  /**
+   * stacked(canvas, { categories, series: [{ label, values, color? }], unit, valueTitle, horizontal })
+   * Series colours follow the entity (blood group, product, status...).
+   */
+  function stacked(canvas, opts) {
+    const horizontal = !!opts.horizontal;
+    const datasets = opts.series.map((s, i) => ({
+      label: s.label, data: s.values, backgroundColor: s.color || colorFor(s.label, i),
+      borderColor: COLORS.surface, borderWidth: horizontal ? { right: 1 } : { top: 1 }, maxBarThickness: 46
+    }));
+    const valueAxis = axis(opts.valueTitle, opts.unit, { stacked: true, beginAtZero: true });
+    const catAxis = categoryAxis(opts.categoryTitle, { stacked: true });
+    return draw(canvas, {
+      type: 'bar',
+      data: { labels: opts.categories, datasets },
+      options: {
+        indexAxis: horizontal ? 'y' : 'x',
+        interaction: { mode: 'index', intersect: false, axis: horizontal ? 'y' : 'x' },
+        scales: horizontal ? { x: valueAxis, y: catAxis } : { x: catAxis, y: valueAxis },
+        plugins: {
+          legend: { position: 'top', align: 'end' },
+          tooltip: {
+            callbacks: {
+              label: c => ` ${c.dataset.label}: ${withUnit(horizontal ? c.parsed.x : c.parsed.y, opts.unit)}`,
+              footer: items => 'Total: ' + withUnit(items.reduce((a, it) => a + ((horizontal ? it.parsed.x : it.parsed.y) || 0), 0), opts.unit)
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /** gauge(canvas, { value, max, label, alertBelow }) — half-donut for a single rate */
+  function gauge(canvas, opts) {
+    const max = opts.max || 100;
+    const v = Math.max(0, Math.min(max, opts.value || 0));
+    const alert = opts.alertBelow !== undefined && v < opts.alertBelow;
+    const col = alert ? COLORS.pink : COLORS.purple;
+    return draw(canvas, {
+      type: 'doughnut',
+      data: { labels: [opts.label, 'Remaining'], datasets: [{ data: [v, max - v], backgroundColor: [col, '#EEE7ED'], borderWidth: 0 }] },
+      options: {
+        rotation: -90, circumference: 180, cutout: '74%',
+        layout: { padding: { top: 6, bottom: 0 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { filter: it => it.dataIndex === 0, callbacks: { label: c => ` ${opts.label}: ${fmt(c.parsed, '%')}` } },
+          uhaiCenter: { gauge: true, color: alert ? '#B0005A' : COLORS.ink, lines: [fmt(opts.value, '%'), opts.caption || ''] }
+        }
+      },
+      plugins: [centerText]
+    });
+  }
+
+  /** funnel(canvas, { steps: [{ label, value }], unit }) — centred floating bars */
+  function funnel(canvas, opts) {
+    const max = Math.max(1, ...opts.steps.map(s => s.value || 0));
+    const first = opts.steps[0] ? opts.steps[0].value : 0;
+    const shades = ['#880275', '#9B2D8A', '#AE589F', '#C183B4', '#D4AECA'];
+    return draw(canvas, {
+      type: 'bar',
+      data: {
+        labels: opts.steps.map(s => s.label),
+        datasets: [{
+          data: opts.steps.map(s => [(max - s.value) / 2, (max + s.value) / 2]),
+          backgroundColor: opts.steps.map((s, i) => shades[i % shades.length]),
+          borderRadius: 6, borderSkipped: false, barPercentage: 0.92, categoryPercentage: 0.9
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        scales: {
+          x: { display: false, min: 0, max },
+          y: categoryAxis('', { border: { display: false }, ticks: { color: COLORS.ink, font: { size: 13, weight: '600' } } })
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: c => {
+                const s = opts.steps[c.dataIndex];
+                return ` ${withUnit(s.value, opts.unit)}${first ? ` (${(100 * s.value / first).toFixed(0)}% of first step)` : ''}`;
+              }
+            }
+          },
+          uhaiFunnelLabels: { steps: opts.steps, unit: opts.unit }
+        }
+      },
+      plugins: [{
+        id: 'uhaiFunnelLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          ctx.save();
+          ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+          ctx.font = '700 13px Inter, system-ui, sans-serif';
+          chart.getDatasetMeta(0).data.forEach((bar, i) => {
+            const s = opts.steps[i];
+            const w = Math.abs(bar.width || (bar.x - bar.base));
+            if (w > 70) ctx.fillText(fmt(s.value, opts.unit), (bar.x + bar.base) / 2, bar.y + 5);
+          });
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  /**
+   * heatmapHtml({ rows, cols, values, unit, rowLabel, colLabel, formatCol })
+   * An accessible HTML grid; cell colour runs from light purple to UHAI purple.
+   */
+  function heatmapHtml(o) {
+    const flat = o.values.flat().filter(v => v !== null && v !== undefined);
+    const lo = Math.min(...flat), hi = Math.max(...flat);
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const shade = v => {
+      if (v === null || v === undefined) return 'background:#F6F3F5;color:#968f9b';
+      const t = hi > lo ? (v - lo) / (hi - lo) : 0.5;
+      const mix = (a, b) => Math.round(a + (b - a) * t);
+      const [r, g, b] = [mix(0xF8, 0x88), mix(0xEA, 0x02), mix(0xF7, 0x75)];
+      return `background:rgb(${r},${g},${b});color:${t > 0.5 ? '#fff' : '#241F24'}`;
+    };
+    const colName = o.formatCol || (c => c);
+    return `
+      <div class="heat" role="table" aria-label="${esc(o.label || '')}">
+        <div class="heat__grid" style="grid-template-columns: minmax(110px, auto) repeat(${o.cols.length}, minmax(52px, 1fr))">
+          <div class="heat__corner" role="columnheader">${esc(o.rowLabel || '')}</div>
+          ${o.cols.map(c => `<div class="heat__col" role="columnheader">${esc(colName(c))}</div>`).join('')}
+          ${o.rows.map((r, i) => `
+            <div class="heat__row" role="rowheader">${esc(r)}</div>
+            ${o.cols.map((c, j) => {
+              const v = o.values[i][j];
+              const text = v === null || v === undefined ? '–' : fmt(v, o.unit);
+              return `<div class="heat__cell" role="cell" style="${shade(v)}" title="${esc(r)} · ${esc(colName(c))}: ${esc(withUnit(v, o.unit))}">${text}</div>`;
+            }).join('')}`).join('')}
+        </div>
+        <div class="heat__legend" aria-hidden="true"><span>${fmt(lo, o.unit)}</span><i></i><span>${fmt(hi, o.unit)}</span></div>
+      </div>`;
   }
 
   /**
@@ -377,5 +546,5 @@ window.UhaiCharts = (function () {
 
   applyDefaults();
 
-  return { render, line, bar, destroy, destroyAll, colorFor, alpha, fmt, withUnit, ready, COLORS, CATEGORICAL, reduceMotion };
+  return { render, line, bar, stacked, gauge, funnel, heatmapHtml, destroy, destroyAll, colorFor, alpha, fmt, withUnit, ready, COLORS, CATEGORICAL, reduceMotion };
 })();

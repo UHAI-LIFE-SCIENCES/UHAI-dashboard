@@ -29,7 +29,7 @@
             <section class="faq-group" id="faq-{{ g }}" aria-labelledby="faq-{{ g }}-title">
                 <h2 class="h3" id="faq-{{ g }}-title">{{ group }}</h2>
                 <div class="accordion" data-accordion>
-                    {% for q, a, pending in items %}
+                    {% for q, a in items %}
                     {% set id = 'faq-' ~ g ~ '-' ~ loop.index %}
                     <div class="accordion__item">
                         <h3 class="accordion__heading">
@@ -41,7 +41,6 @@
                         <div class="accordion__panel" id="{{ id }}-panel" role="region" aria-labelledby="{{ id }}-btn" hidden>
                             <div class="accordion__body">
                                 <p>{{ a }}</p>
-                                {% if pending %}<p class="pending">Full answer to be confirmed by UHAI.</p>{% endif %}
                             </div>
                         </div>
                     </div>

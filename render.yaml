@@ -1,0 +1,29 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# In Render: New > Blueprint > pick this repo. Values marked sync: false are
+# entered in the Render dashboard on first deploy and are never stored here.
+services:
+  - type: web
+    name: uhai-dashboard
+    runtime: python
+    plan: starter            # paid plan required for the persistent disk below
+    region: frankfurt        # closest Render region to Kenya
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir app app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    healthCheckPath: /api/ping
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: UHAI_CONTACT_DB
+        value: /var/data/contact_messages.db
+      - key: UHAI_RAW_API_KEY
+        sync: false
+      - key: UHAI_CONTACT_EMAIL
+        sync: false
+      - key: UHAI_CONTACT_PHONE
+        sync: false
+    disk:
+      name: uhai-data
+      mountPath: /var/data
+      sizeGB: 1

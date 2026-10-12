@@ -13,7 +13,7 @@
   // Older links (from the previous dashboard layout) still land somewhere sensible
   const ALIASES = {
     '': 'overview', home: 'overview', 'over-time': 'overview', 'blood-groups': 'overview',
-    transfusion: 'transfusions', map: 'distribution', forecasting: 'forecast', 'data-quality': 'quality'
+    transfusion: 'transfusions', forecasting: 'forecast', 'data-quality': 'about', quality: 'about'
   };
   const HASH_KEYS = { blood_group: 'bg', product: 'product', facility: 'facility', donor_type: 'dt', channel: 'ch' };
 
@@ -51,21 +51,10 @@
   // Data source status (API vs mock) — always visible
   // ------------------------------------------------------------------
   function showSource(status) {
-    const pill = document.getElementById('source-pill');
+    if (status.kind === 'api') return;
     const banner = document.getElementById('source-banner');
-    document.getElementById('footer-source').textContent = status.description;
-    if (status.kind === 'api') {
-      pill.className = 'badge badge--source';
-      pill.textContent = 'Live API';
-      pill.title = status.description;
-    } else {
-      pill.className = 'badge badge--mock';
-      pill.textContent = 'Mock data';
-      pill.title = status.description;
-      banner.hidden = false;
-      banner.innerHTML = `<b>Mock data.</b> ${status.fallbackReason ? U.esc(status.fallbackReason) + ' ' : ''}
-        These figures come from the offline mock module, not from uhai_dashboard.db.`;
-    }
+    banner.hidden = false;
+    banner.textContent = 'Live data could not be reached, so offline sample figures are shown.';
   }
 
   // ------------------------------------------------------------------
@@ -85,7 +74,7 @@
       a.classList.toggle('is-active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    moreBtn.classList.toggle('is-active', route === 'forecast' || route === 'quality');
+    moreBtn.classList.toggle('is-active', route === 'forecast' || route === 'about');
   }
 
   // ------------------------------------------------------------------
@@ -117,7 +106,7 @@
     app.pageState[route] = app.pageState[route] || {};
     setActiveNav(route);
     writeHash();
-    document.title = page.title + ' · UHAI Blood Insights';
+    document.title = page.title + ' · Uhai Blood Insights';
     renderFilterBar();
 
     view.classList.remove('is-entering');

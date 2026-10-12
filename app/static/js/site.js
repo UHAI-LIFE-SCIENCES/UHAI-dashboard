@@ -1,7 +1,22 @@
 /**
  * UHAI public website — small, dependency-free interactions.
- * Navigation, scroll reveal, photo lightbox, FAQ accordion, contact form.
+ * Navigation, scroll reveal and count-up, step-tabs, blood supply widget,
+ * photo lightbox, FAQ accordion, contact form.
  */
+
+// Blood supply shown in the home-page widget. Edit these values to update it.
+// status must be 'Stable', 'Low' or 'Critical'.
+const BLOOD_STOCK = {
+  'O+':  { units: 120, status: 'Stable' },
+  'O-':  { units: 18,  status: 'Critical' },
+  'A+':  { units: 86,  status: 'Stable' },
+  'A-':  { units: 14,  status: 'Low' },
+  'B+':  { units: 64,  status: 'Stable' },
+  'B-':  { units: 9,   status: 'Critical' },
+  'AB+': { units: 27,  status: 'Low' },
+  'AB-': { units: 6,   status: 'Low' }
+};
+
 (function () {
   'use strict';
 
@@ -24,7 +39,9 @@
       if (e.key === 'Escape' && nav.classList.contains('is-open')) { setMenu(false); toggle.focus(); }
     });
     document.addEventListener('click', e => { if (!nav.contains(e.target)) setMenu(false); });
-    window.matchMedia('(min-width: 961px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
+    // In-page links (Next Blood Drive) should close the mobile menu
+    nav.querySelectorAll('.nav__links a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+    window.matchMedia('(min-width: 1101px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
 
     const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 8);
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -32,18 +49,125 @@
   }
 
   // ------------------------------------------------------------------
-  // Scroll reveal (fires once per element)
+  // Scroll reveal: fade up once per element; impact numbers count up from 0
   // ------------------------------------------------------------------
+  const COUNT_MS = 1500;
+
+  // "3,000+" -> { prefix: '', value: 3000, suffix: '+', commas: true }
+  function parseCount(text) {
+    const m = text.trim().match(/^(\D*)([\d,]+(?:\.\d+)?)(.*)$/);
+    if (!m) return null;
+    return { prefix: m[1], value: parseFloat(m[2].replace(/,/g, '')), suffix: m[3], commas: m[2].includes(',') };
+  }
+
+  function formatCount(c, n) {
+    const num = c.commas ? Math.round(n).toLocaleString('en-US') : String(Math.round(n));
+    return c.prefix + num + c.suffix;
+  }
+
+  function countUp(el) {
+    const c = el._count;
+    if (!c) return;
+    const start = performance.now();
+    const tick = now => {
+      const t = Math.min(1, (now - start) / COUNT_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = formatCount(c, c.value * eased);
+      if (t < 1) requestAnimationFrame(tick);
+      else el.textContent = c.final;
+    };
+    requestAnimationFrame(tick);
+  }
+
   const revealables = document.querySelectorAll('.reveal, .gap-figure');
   if (reduceMotion || !('IntersectionObserver' in window)) {
+    // Final numbers shown as written, no movement
     revealables.forEach(el => el.classList.add('is-visible'));
   } else {
+    document.querySelectorAll('[data-count]').forEach(el => {
+      const c = parseCount(el.textContent);
+      if (!c) return;
+      c.final = el.textContent.trim();
+      el._count = c;
+      el.textContent = formatCount(c, 0);
+    });
     const io = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) { entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        entry.target.querySelectorAll('[data-count]').forEach(countUp);
+        io.unobserve(entry.target);
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
     revealables.forEach(el => io.observe(el));
+  }
+
+  // ------------------------------------------------------------------
+  // Step-tabs (What UHAI does): click/tap, hover with a mouse, arrow keys
+  // ------------------------------------------------------------------
+  document.querySelectorAll('[data-steps]').forEach(root => {
+    const tabs = [...root.querySelectorAll('[role="tab"]')];
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    function select(tab, focus) {
+      if (tab.getAttribute('aria-selected') === 'true') { if (focus) tab.focus(); return; }
+      tabs.forEach(t => {
+        const on = t === tab;
+        const panel = document.getElementById(t.getAttribute('aria-controls'));
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        panel.hidden = !on;
+        panel.classList.toggle('is-entering', on && !reduceMotion);
+      });
+      if (focus) tab.focus();
+    }
+
+    tabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => select(tab, false));
+      if (canHover) tab.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') select(tab, false); });
+      tab.addEventListener('keydown', e => {
+        const go = j => { e.preventDefault(); select(tabs[(j + tabs.length) % tabs.length], true); };
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(i + 1);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(i - 1);
+        else if (e.key === 'Home') go(0);
+        else if (e.key === 'End') go(tabs.length - 1);
+      });
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Blood supply widget (values from BLOOD_STOCK at the top of this file)
+  // ------------------------------------------------------------------
+  const stock = document.querySelector('[data-stock]');
+  if (stock) {
+    const pills = [...stock.querySelectorAll('[data-group]')];
+    const out = {
+      group: stock.querySelector('[data-stock-group]'),
+      units: stock.querySelector('[data-stock-units]'),
+      status: stock.querySelector('[data-stock-status]'),
+      label: stock.querySelector('[data-stock-label]')
+    };
+
+    function showGroup(group) {
+      const d = BLOOD_STOCK[group] || { units: null, status: '' };
+      pills.forEach(p => p.setAttribute('aria-pressed', String(p.dataset.group === group)));
+      out.group.textContent = group;
+      out.units.textContent = d.units === null ? '–' : Number(d.units).toLocaleString('en-US');
+      out.label.textContent = d.status ? 'Supply: ' + d.status : '';
+      out.status.dataset.level = String(d.status).toLowerCase();
+    }
+
+    pills.forEach(p => p.addEventListener('click', () => showGroup(p.dataset.group)));
+    showGroup('O+');
+  }
+
+  // ------------------------------------------------------------------
+  // Contact form: preselect the reason from ?reason=... (e.g. from a drive card)
+  // ------------------------------------------------------------------
+  const reasonSelect = document.querySelector('[data-contact-form] select[name="reason"]');
+  const askedReason = new URLSearchParams(location.search).get('reason');
+  if (reasonSelect && askedReason && [...reasonSelect.options].some(o => o.value === askedReason)) {
+    reasonSelect.value = askedReason;
   }
 
   // ------------------------------------------------------------------
@@ -222,7 +346,7 @@
           setStatus('ok', body.delivered
             ? '<b>Thank you — your message has been sent.</b> UHAI will reply by email.'
             : '<b>Thank you — your message has been received (reference #' + body.reference + ').</b>' +
-              ' It has been saved on the UHAI server. Automatic notification to the UHAI team is not switched on yet, so a reply may take longer.');
+              ' The UHAI team will reply by email.');
         } else if (body.errors) {
           showErrors(body.errors);
           if (body.errors.form) setStatus('error', '<b>Your message was not sent.</b>' + body.errors.form);

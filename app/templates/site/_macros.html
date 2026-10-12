@@ -3,7 +3,7 @@
 {%- set p = c.PHOTOS[key] -%}
 <img class="photo {{ cls }}"
      src="{{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') }}"
-     srcset="{{ url_for('static', filename='img/photos/' ~ key ~ '-sm.jpg') }} 800w, {{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') }} {{ p.w }}w"
+     srcset="{{ url_for('static', filename='img/photos/' ~ key ~ '-xs.jpg') }} 480w, {{ url_for('static', filename='img/photos/' ~ key ~ '-sm.jpg') }} 800w, {{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') }} {{ p.w }}w"
      sizes="{{ sizes }}" width="{{ p.w }}" height="{{ p.h }}" alt="{{ p.alt }}"
      style="object-position: {{ p.focus }}"
      {% if eager %}fetchpriority="high"{% else %}loading="lazy" decoding="async"{% endif %}>
@@ -14,7 +14,7 @@
 {%- set p = c.PHOTOS[key] -%}
 <figure class="tile {{ cls }} reveal">
     <button type="button" class="tile__btn" data-lightbox-open="{{ index }}" aria-label="Open larger photo: {{ p.caption }}">
-        {{ photo(c, key, '(max-width: 700px) 100vw, 40vw') }}
+        {{ photo(c, key, '(max-width: 700px) 100vw, 62vw' if 'tile--1' in cls else '(max-width: 700px) 100vw, 40vw') }}
         <span class="tile__overlay" aria-hidden="true">
             <span class="tile__zoom"><svg viewBox="0 0 20 20"><path d="M8.5 3a5.5 5.5 0 1 0 3.4 9.8l3.7 3.7 1.1-1.1-3.7-3.7A5.5 5.5 0 0 0 8.5 3zm0 1.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM7.7 6v1.7H6v1.6h1.7V11h1.6V9.3H11V7.7H9.3V6z" fill="currentColor"/></svg></span>
         </span>
@@ -40,6 +40,61 @@
 <script type="application/json" data-gallery>
 [{% for key in keys %}{"src": {{ url_for('static', filename='img/photos/' ~ key ~ '.jpg') | tojson }}, "alt": {{ c.PHOTOS[key].alt | tojson }}, "caption": {{ c.PHOTOS[key].caption | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]
 </script>
+{%- endmacro %}
+
+{# Vector illustrations for the "What UHAI does" step-tabs (square, scale without blur) #}
+{% macro step_art(key) -%}
+<svg viewBox="0 0 240 240" class="steps__svg">
+    <rect width="240" height="240" rx="28" fill="#f8eaf7"/>
+    <circle cx="190" cy="52" r="26" fill="#fff0f7"/>
+    <circle cx="48" cy="196" r="18" fill="#fff"/>
+{%- if key == 'access' %}
+    {# Donors gathering around a blood drop #}
+    <circle cx="62" cy="96" r="16" fill="#880275"/>
+    <path d="M34 150c0-18 12-30 28-30s28 12 28 30z" fill="#880275"/>
+    <circle cx="178" cy="96" r="16" fill="#5f0152"/>
+    <path d="M150 150c0-18 12-30 28-30s28 12 28 30z" fill="#5f0152"/>
+    <path d="M120 44c22 30 36 50 36 72a36 36 0 0 1-72 0c0-22 14-42 36-72z" fill="#fe1980"/>
+    <path d="M120 98v34M103 115h34" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
+    <path d="M34 176h172" stroke="#ecd2e8" stroke-width="6" stroke-linecap="round"/>
+{%- elif key == 'processing' %}
+    {# Storage unit with a thermometer and a steady temperature line #}
+    <rect x="40" y="48" width="104" height="148" rx="14" fill="#fff" stroke="#880275" stroke-width="6"/>
+    <path d="M40 102h104" stroke="#880275" stroke-width="6"/>
+    <path d="M58 70v14M58 122v22" stroke="#880275" stroke-width="6" stroke-linecap="round"/>
+    <rect x="76" y="124" width="22" height="36" rx="5" fill="#fe1980"/>
+    <rect x="104" y="124" width="22" height="36" rx="5" fill="#fe1980" opacity=".7"/>
+    <rect x="166" y="56" width="26" height="104" rx="13" fill="#fff" stroke="#5f0152" stroke-width="6"/>
+    <circle cx="179" cy="172" r="22" fill="#fe1980" stroke="#5f0152" stroke-width="6"/>
+    <path d="M179 150V96" stroke="#fe1980" stroke-width="10" stroke-linecap="round"/>
+    <path d="M40 214h40l10-12 10 24 10-12h44" fill="none" stroke="#880275" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+{%- else %}
+    {# Central inventory linked to hospitals #}
+    <path d="M120 120L56 64M120 120l64-56M120 120l-64 64M120 120l64 64" stroke="#ecd2e8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M120 120L56 64M120 120l64 64" stroke="#880275" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 12"/>
+    <rect x="36" y="44" width="40" height="40" rx="10" fill="#fff" stroke="#880275" stroke-width="5"/>
+    <path d="M56 54v20M46 64h20" stroke="#fe1980" stroke-width="5" stroke-linecap="round"/>
+    <rect x="164" y="44" width="40" height="40" rx="10" fill="#fff" stroke="#880275" stroke-width="5"/>
+    <path d="M184 54v20M174 64h20" stroke="#fe1980" stroke-width="5" stroke-linecap="round"/>
+    <rect x="36" y="164" width="40" height="40" rx="10" fill="#fff" stroke="#880275" stroke-width="5"/>
+    <path d="M56 174v20M46 184h20" stroke="#fe1980" stroke-width="5" stroke-linecap="round"/>
+    <rect x="164" y="164" width="40" height="40" rx="10" fill="#fff" stroke="#880275" stroke-width="5"/>
+    <path d="M184 174v20M174 184h20" stroke="#fe1980" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="120" cy="120" r="34" fill="#880275"/>
+    <path d="M120 98c10 13 16 22 16 30a16 16 0 0 1-32 0c0-8 6-17 16-30z" fill="#fff"/>
+{%- endif %}
+</svg>
+{%- endmacro %}
+
+{# Social media marks, single colour (currentColor) #}
+{% macro social_icon(key) -%}
+{%- if key == 'instagram' -%}
+<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.2c3.2 0 3.6 0 4.8.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8C2.4 3.9 3.9 2.4 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7 1.2.1 1.6.1 4.9.1s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9c-.2-4.4-2.6-6.8-7-7C15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.9 1.4 1.4 0 0 0 0-2.9z"/></svg>
+{%- elif key == 'linkedin' -%}
+<svg viewBox="0 0 24 24"><path fill="currentColor" d="M20.4 20.5h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.3V9h3.4v1.6h.1c.5-.9 1.6-1.8 3.4-1.8 3.6 0 4.3 2.4 4.3 5.5v6.2zM5.3 7.4a2.1 2.1 0 1 1 0-4.1 2.1 2.1 0 0 1 0 4.1zM7.1 20.5H3.6V9h3.5v11.5zM22.2 0H1.8C.8 0 0 .8 0 1.7v20.6c0 .9.8 1.7 1.8 1.7h20.4c1 0 1.8-.8 1.8-1.7V1.7C24 .8 23.2 0 22.2 0z"/></svg>
+{%- elif key == 'x' -%}
+<svg viewBox="0 0 24 24"><path fill="currentColor" d="M18.9 1.2h3.7l-8 9.2L24 22.8h-7.4l-5.8-7.6-6.6 7.6H.5l8.6-9.8L0 1.2h7.6l5.2 6.9 6.1-6.9zm-1.3 19.4h2L6.5 3.3H4.3l13.3 17.3z"/></svg>
+{%- endif -%}
 {%- endmacro %}
 
 {% macro arrow() -%}

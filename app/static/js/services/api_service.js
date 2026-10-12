@@ -54,7 +54,7 @@ window.UhaiApiService = (function () {
 
   return {
     kind: 'api',
-    describe: function () { return 'Flask API · ' + (base() || window.location.origin) + ' · uhai_dashboard.db'; },
+    describe: function () { return 'Live data'; },
     ping: function () { return get('/api/ping'); },
     meta: function () { return get('/api/meta'); },
     dashboard: function (filters) { return get('/api/dashboard', filters); },
@@ -64,6 +64,10 @@ window.UhaiApiService = (function () {
     explore: function (query, filters) {
       return get('/api/explore', filters, { indicator: query.indicator, by: query.by });
     },
+    crosstab: function (query, filters) {
+      return get('/api/crosstab', filters, { indicator: query.indicator, by: query.by, by2: query.by2 });
+    },
+    geo: function (filters) { return get('/api/geo', filters); },
     quality: function () { return get('/api/quality'); }
   };
 })();

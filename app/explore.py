@@ -12,7 +12,7 @@ from pathlib import Path
 
 from analytics import AGE_ORDER, COMPONENT_COLUMNS, SCREENING, WEEKDAY_ORDER, _all_periods, period_expr
 from db import query
-from filters import CHANNEL, TABLES, build_filters, q
+from filters import CHANNEL, SOURCING_PRODUCT, TABLES, build_filters, q
 
 CATALOG_PATH = Path(__file__).resolve().parent / "static" / "data" / "indicators.json"
 CATALOG = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
@@ -27,7 +27,7 @@ COMPONENT_SUM = " + ".join(f"SUM({q(c)})" for c in COMPONENT_COLUMNS.values())
 DIM_SQL = {
     "sourcing": {
         "blood_group": ("blood_group", None),
-        "collection": (q("blood_product"), None),
+        "collection": (SOURCING_PRODUCT, None),
         "donor_type": (q("voluntary/replacement"), None),
         "sex": ("sex", None),
         "age_group": (q("donor_age_group"), "label"),
@@ -153,5 +153,62 @@ def explore(key, by, grain_filters):
         "categories": categories,
         "series": [{"key": m["key"], "label": m["label"], "unit": m.get("unit", ind["unit"]), "values": values[m["key"]]} for m in ind["measures"]],
         "overall": {k: _clean(overall[k]) for k in keys},
+        "filters_applied": applied,
+    }
+
+
+
+def crosstab(key, by, by2, filters):
+    """Two-way breakdown of an indicator's first measure (stacked bars, heatmaps)."""
+    ind = CATALOG["indicators"].get(key)
+
+    if not ind:
+        raise ValueError(f"Unknown indicator '{key}'")
+
+    for d in (by, by2):
+        if d not in ind["dims"] or d == "component":
+            raise ValueError(f"'{ind['label']}' cannot be broken down by '{d}'")
+
+    table = ind["table"]
+    measure_key = ind["measures"][0]["key"]
+    measure = MEASURE_SQL[key][measure_key]
+    where, params, applied = build_filters(table, filters)
+
+    def dim_expr(d):
+        dim = CATALOG["dims"][table][d]
+        if dim.get("time"):
+            return period_expr(TABLES[table]["date"], dim["time"]), None
+        return DIM_SQL[table][d]
+
+    e1, o1 = dim_expr(by)
+    e2, o2 = dim_expr(by2)
+    rows = query(f"SELECT {e1} AS a, {e2} AS b, {measure} AS v FROM {table} WHERE {where} GROUP BY 1, 2", params)
+
+    def ordered(col, d, order):
+        dim = CATALOG["dims"][table][d]
+        values = sorted({r[col] for r in rows})
+        if dim.get("time"):
+            return _all_periods(values[0], values[-1], dim["time"]) if values else []
+        if order:
+            ranked = query(f"SELECT {DIM_SQL[table][d][0]} AS label FROM {table} WHERE {where} GROUP BY 1 ORDER BY {order}", params)
+            return [r["label"] for r in ranked if r["label"] in values]
+        totals = {}
+        for r in rows:
+            totals[r[col]] = totals.get(r[col], 0) + (r["v"] or 0)
+        return sorted(values, key=lambda v: -totals[v])
+
+    rows_order = ordered("a", by, o1)
+    cols_order = ordered("b", by2, o2)
+    cell = {(r["a"], r["b"]): _clean(r["v"]) for r in rows}
+    fill = None if ind.get("ratio") else 0
+
+    return {
+        "indicator": {"key": key, **{k: v for k, v in ind.items() if k != "dims"}},
+        "by": by, "by_label": CATALOG["dims"][table][by]["label"],
+        "by2": by2, "by2_label": CATALOG["dims"][table][by2]["label"],
+        "time": CATALOG["dims"][table][by].get("time"),
+        "rows": rows_order, "cols": cols_order,
+        "values": [[cell.get((a, b), fill) for b in cols_order] for a in rows_order],
+        "unit": ind["measures"][0].get("unit", ind["unit"]),
         "filters_applied": applied,
     }

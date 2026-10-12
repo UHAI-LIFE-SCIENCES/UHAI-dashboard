@@ -17,22 +17,29 @@ def q(column):
 # Canonical product vocabulary used by the product filter. Each table names
 # its products differently; the CASE expressions below map them. This mapping
 # is an assumption documented in the README.
-PRODUCTS = ["Whole Blood", "Red Cells", "Plasma", "Platelets"]
+PRODUCTS = ["Whole Blood", "Packed Red Cells", "Plasma", "Platelets"]
+
+# SAMPLE DATA: sourcing records only hold whole blood and apheresis donations.
+# Until processing records are linked to donations, 60% of whole-blood
+# donations (chosen deterministically by donor ID) are shown as separated
+# into packed red cells. Replace with the real product once it is recorded.
+RBC_SAMPLE = f"(CAST(substr({q('patient_id')}, 11) AS INTEGER) % 10) < 6"
 
 SOURCING_PRODUCT = f"""CASE
+    WHEN {q('blood_product')} LIKE 'Whole Blood%' AND {RBC_SAMPLE} THEN 'Packed Red Cells'
     WHEN {q('blood_product')} LIKE 'Whole Blood%' THEN 'Whole Blood'
     WHEN {q('blood_product')} = 'Apheresis Platelets' THEN 'Platelets'
     WHEN {q('blood_product')} = 'Apheresis Plasma' THEN 'Plasma'
     ELSE {q('blood_product')} END"""
 
 DISTRIBUTION_PRODUCT = f"""CASE
-    WHEN {q('type_of_product')} = 'Packed Red Blood Cells' THEN 'Red Cells'
+    WHEN {q('type_of_product')} = 'Packed Red Blood Cells' THEN 'Packed Red Cells'
     WHEN {q('type_of_product')} = 'Fresh Frozen Plasma' THEN 'Plasma'
     WHEN {q('type_of_product')} = 'Platelet Concentrate' THEN 'Platelets'
     ELSE {q('type_of_product')} END"""
 
 TRANSFUSION_PRODUCT = f"""CASE
-    WHEN {q('blood_product_requested')} = 'Packed Red Blood Cells' THEN 'Red Cells'
+    WHEN {q('blood_product_requested')} = 'Packed Red Blood Cells' THEN 'Packed Red Cells'
     WHEN {q('blood_product_requested')} = 'Fresh Frozen Plasma' THEN 'Plasma'
     ELSE {q('blood_product_requested')} END"""
 

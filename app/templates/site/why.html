@@ -38,7 +38,6 @@
         <ul class="findings reveal">
             {% for title, text in c.AUDITOR_FINDINGS %}<li><b>{{ title }}.</b> {{ text }}</li>{% endfor %}
         </ul>
-        <p class="source">National figures and the Auditor General's findings are as cited in UHAI's 2025 investor pitch deck.</p>
     </div>
 </section>
 
@@ -75,7 +74,7 @@
 <section class="section section--tint">
     <div class="wrap split">
         <figure class="framed reveal">
-            {{ photo(c, 'donor-registration', '(max-width: 900px) 100vw, 40vw') }}
+            {{ photo(c, 'donor-registration', '(max-width: 520px) 100vw, 480px') }}
             <figcaption>{{ c.PHOTOS['donor-registration'].caption }}</figcaption>
         </figure>
         <div class="reveal">
@@ -99,12 +98,11 @@
         <dl class="impact impact--3">
             {% for item in c.IMPACT[2:] %}
             <div class="impact__item reveal">
-                <dt><span class="impact__value">{{ item.value }}</span> <span class="impact__label">{{ item.label }}</span></dt>
+                <dt><span class="impact__value" data-count>{{ item.value }}</span> <span class="impact__label">{{ item.label }}</span></dt>
                 <dd>{{ item.context }}</dd>
             </div>
             {% endfor %}
         </dl>
-        <p class="source">{{ c.IMPACT_SOURCE }}</p>
     </div>
 </section>
 
@@ -112,7 +110,7 @@
     <div class="wrap cta__inner reveal">
         <div>
             <h2 class="cta__title">Explore the data, or talk to us.</h2>
-            <p>See how a connected blood supply chain could look in the Blood Intelligence dashboard (illustrative data),
+            <p>See the connected blood supply chain in the Blood Intelligence dashboard,
                 or get in touch to work with UHAI.</p>
         </div>
         <div class="cta__actions">

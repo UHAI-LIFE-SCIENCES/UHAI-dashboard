@@ -68,14 +68,13 @@
                     {% for d in contact_details %}
                     <div><dt>{{ d.label }}</dt><dd><a href="{{ d.href }}">{{ d.value }}</a></dd></div>
                     {% endfor %}
+                    {% for s in c.SOCIAL %}
+                    <div><dt>{{ s.name }}</dt><dd><a href="{{ s.url }}" target="_blank" rel="noopener noreferrer">{{ s.handle }}<span class="visually-hidden"> (opens in a new tab)</span></a></dd></div>
+                    {% endfor %}
                 </dl>
-                {% if not contact_details %}
-                <p class="muted">Email, phone and social-media details will appear here once UHAI confirms them.
-                    In the meantime, please use the form.</p>
-                {% endif %}
             </div>
             <figure class="framed framed--small">
-                {{ photo(c, 'event-tablet', '(max-width: 900px) 100vw, 30vw') }}
+                {{ photo(c, 'event-tablet', '(max-width: 900px) 100vw, 420px') }}
                 <figcaption>{{ c.PHOTOS['event-tablet'].caption }}</figcaption>
             </figure>
         </aside>

@@ -34,7 +34,7 @@ window.UhaiData = (function () {
       try {
         await provider.ping();
       } catch (err) {
-        fallbackReason = 'The API could not be reached (' + err.message + ').';
+        fallbackReason = 'Live data could not be reached.';
         provider = PROVIDERS.mock;
       }
     }
@@ -69,6 +69,10 @@ window.UhaiData = (function () {
     explore: function (query, filters) {
       return cached('ex:' + JSON.stringify([query, filters]), () => provider.explore(query, filters));
     },
+    crosstab: function (query, filters) {
+      return cached('ct:' + JSON.stringify([query, filters]), () => provider.crosstab(query, filters));
+    },
+    geo: function (filters) { return cached('geo:' + JSON.stringify(filters), () => provider.geo(filters)); },
     quality: function () { return cached('quality', () => provider.quality()); },
 
     // Indicator catalogue (labels, units, allowed breakdowns). Shared static file.

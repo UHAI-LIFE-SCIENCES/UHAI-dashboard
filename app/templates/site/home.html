@@ -1,5 +1,5 @@
 {% extends "site/base.html" %}
-{% from "site/_macros.html" import photo, tile, lightbox, arrow %}
+{% from "site/_macros.html" import photo, tile, lightbox, arrow, step_art %}
 
 {% block content %}
 
@@ -45,7 +45,6 @@
                 <span class="gap-bar__fill" style="--share: {{ (100 * c.NATIONAL_DONATED_PINTS / c.NATIONAL_TARGET_PINTS) | round(1) }}%"></span>
             </div>
             <div class="gap-figure__scale" aria-hidden="true"><span>0</span><span>Target: {{ '{:,}'.format(c.NATIONAL_TARGET_PINTS) }} pints</span></div>
-            <p class="source">National figures as cited in UHAI's 2025 investor pitch deck.</p>
         </div>
     </div>
 </section>
@@ -59,16 +58,30 @@
             <p class="lead">With the Eldoret blood bank, UHAI focuses on three links in the chain. Data and
                 predictive modelling connect them, so that each drive, each fridge and each request is planned rather than improvised.</p>
         </div>
-        <ol class="pillars">
+        <div class="steps reveal" data-steps>
+            <div class="steps__tabs" role="tablist" aria-label="What UHAI does">
+                {% for p in c.PILLARS %}
+                <button type="button" class="steps__tab" role="tab" id="step-tab-{{ p.key }}"
+                        aria-controls="step-panel-{{ p.key }}" aria-selected="{{ 'true' if loop.first else 'false' }}"
+                        tabindex="{{ '0' if loop.first else '-1' }}">
+                    <span class="steps__num">0{{ loop.index }}</span>
+                    <span class="steps__label">{{ p.title }}</span>
+                </button>
+                {% endfor %}
+            </div>
             {% for p in c.PILLARS %}
-            <li class="pillar reveal">
-                <span class="pillar__num">0{{ loop.index }}</span>
-                <h3 class="pillar__title">{{ p.title }}</h3>
-                <p class="pillar__summary">{{ p.summary }}</p>
-                <ul class="ticks">{% for a in p.activities[:2] %}<li>{{ a }}</li>{% endfor %}</ul>
-            </li>
+            <div class="steps__panel" role="tabpanel" id="step-panel-{{ p.key }}" aria-labelledby="step-tab-{{ p.key }}"
+                 tabindex="0" {% if not loop.first %}hidden{% endif %}>
+                <div class="steps__text">
+                    <h3 class="steps__title"><span>0{{ loop.index }}</span> {{ p.title }}</h3>
+                    <p class="steps__summary">{{ p.summary }}</p>
+                    <ul class="ticks">{% for a in p.activities %}<li>{{ a }}</li>{% endfor %}</ul>
+                    <p class="steps__outcome"><b>Outcome:</b> {{ p.outcome }}</p>
+                </div>
+                <div class="steps__art" aria-hidden="true">{{ step_art(p.key) }}</div>
+            </div>
             {% endfor %}
-        </ol>
+        </div>
     </div>
 </section>
 
@@ -100,12 +113,46 @@
         <dl class="impact">
             {% for item in c.IMPACT %}
             <div class="impact__item reveal">
-                <dt><span class="impact__value">{{ item.value }}</span> <span class="impact__label">{{ item.label }}</span></dt>
+                <dt><span class="impact__value" data-count>{{ item.value }}</span> <span class="impact__label">{{ item.label }}</span></dt>
                 <dd>{{ item.context }}</dd>
             </div>
             {% endfor %}
         </dl>
-        <p class="source">{{ c.IMPACT_SOURCE }}</p>
+    </div>
+</section>
+
+<!-- NEXT BLOOD DRIVE (edit app/blood_drives.py to change the list) -->
+<section class="section section--tint" id="next-drive" aria-labelledby="drive-title">
+    <div class="wrap">
+        <div class="section-head reveal">
+            <p class="eyebrow">Next Blood Drive</p>
+            <h2 class="h2" id="drive-title">Give blood at an upcoming drive</h2>
+            <p class="lead">Join us at one of our upcoming blood drives in Eldoret. Every donation can help save a life.</p>
+        </div>
+        {% if drives %}
+        <ul class="drives">
+            {% for d in drives %}
+            <li class="drive reveal">
+                <div class="drive__date" aria-hidden="true">
+                    <span class="drive__day">{{ d.day }}</span>
+                    <span class="drive__month">{{ d.month }}</span>
+                    <span class="drive__weekday">{{ d.weekday }}</span>
+                </div>
+                <dl class="drive__details">
+                    <div><dt>Date</dt><dd><time datetime="{{ d.date }}">{{ d.label }}</time></dd></div>
+                    <div><dt>Time</dt><dd>{{ d.time }}</dd></div>
+                    <div><dt>Venue</dt><dd>{{ d.venue }}</dd></div>
+                    <div><dt>Area</dt><dd>{{ d.area }}</dd></div>
+                </dl>
+                <a class="btn btn--primary drive__btn" href="{{ url_for('site_contact', reason='Donating blood') }}">
+                    Contact us to join<span class="visually-hidden">: {{ d.label }}, {{ d.venue }}</span> {{ arrow() }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="drives__empty reveal">New blood drive dates are coming soon. Follow us on social media for updates.</p>
+        {% endif %}
     </div>
 </section>
 
@@ -117,7 +164,7 @@
             {% for endpoint, title, text in [
                 ('site_about', 'About UHAI', 'Our story, mission, milestones and the people behind the work.'),
                 ('site_why', 'Why UHAI', 'The problem, our approach, and the change we are working towards.'),
-                ('site_faqs', 'FAQs', 'Blood drives, our technology, partnerships and the dashboard.'),
+                ('site_faqs', 'FAQs', 'Blood drives, our technology, partnerships and how to get involved.'),
                 ('site_contact', 'Contact', 'Partner with us, host a drive, volunteer or ask a question.'),
             ] %}
             <li class="reveal"><a class="explore__card" href="{{ url_for(endpoint) }}">
@@ -129,17 +176,33 @@
     </div>
 </section>
 
-<!-- FINAL CTA -->
-<section class="cta">
-    <div class="wrap cta__inner reveal">
-        <div>
-            <h2 class="cta__title">See the blood supply chain in data.</h2>
+<!-- DASHBOARD PREVIEW (blood stock values: BLOOD_STOCK at the top of static/js/site.js) -->
+<section class="cta" aria-labelledby="preview-title">
+    <div class="wrap preview reveal">
+        <div class="preview__text">
+            <h2 class="cta__title" id="preview-title">See the blood supply chain in data.</h2>
             <p>The Blood Intelligence dashboard follows sourcing, processing, distribution and transfusion demand in one place.
-                It currently runs on illustrative data.</p>
+                Pick a blood group for a quick look at current supply.</p>
+            <div class="cta__actions">
+                <a class="btn btn--ghost-light btn--lg" href="{{ url_for('site_contact') }}">Partner with UHAI</a>
+            </div>
         </div>
-        <div class="cta__actions">
-            <a class="btn btn--light btn--lg" href="{{ url_for('dashboard_page') }}">Go to Dashboard</a>
-            <a class="btn btn--ghost-light btn--lg" href="{{ url_for('site_contact') }}">Partner with UHAI</a>
+        <div class="stock" data-stock>
+            <h3 class="stock__title" id="stock-title">Blood supply by group</h3>
+            <div class="stock__grid">
+                <div class="stock__pills" role="group" aria-labelledby="stock-title">
+                    {% for g in ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] %}
+                    <button type="button" class="stock__pill" data-group="{{ g }}" aria-pressed="{{ 'true' if g == 'O+' else 'false' }}"
+                            aria-label="{{ g | replace('+', ' positive') | replace('-', ' negative') }}">{{ g }}</button>
+                    {% endfor %}
+                </div>
+                <div class="stock__panel" role="status" aria-live="polite" aria-atomic="true">
+                    <p class="stock__group" data-stock-group>O+</p>
+                    <p class="stock__units"><span data-stock-units>–</span> <span class="stock__unit">units available</span></p>
+                    <p class="stock__status" data-stock-status><span class="stock__dot" aria-hidden="true"></span><span data-stock-label></span></p>
+                </div>
+            </div>
+            <a class="btn btn--primary btn--lg stock__btn" href="{{ url_for('dashboard_page') }}">Go to dashboard {{ arrow() }}</a>
         </div>
     </div>
 </section>

@@ -5,6 +5,7 @@ from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 import analytics
+import blood_drives
 import explore
 import contact
 import site_content
@@ -61,6 +62,7 @@ def _site_view(key, template, title):
             page_title=title,
             c=site_content,
             contact_details=site_content.contact_details(),
+            drives=blood_drives.upcoming() if key == "home" else [],
         )
 
     view.__name__ = f"site_{key}"
@@ -196,6 +198,23 @@ def explore_indicator():
         request.args.get("by"),
         read_filters(),
     ))
+
+
+@app.route("/api/crosstab")
+def crosstab_indicator():
+
+    return jsonify(explore.crosstab(
+        request.args.get("indicator", "donations"),
+        request.args.get("by"),
+        request.args.get("by2"),
+        read_filters(),
+    ))
+
+
+@app.route("/api/geo")
+def geo():
+
+    return jsonify(analytics.geo(read_filters()))
 
 
 @app.route("/api/quality")

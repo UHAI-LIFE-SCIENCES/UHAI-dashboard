@@ -1,3 +1,4 @@
+{% from "site/_macros.html" import social_icon %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
 <head>
@@ -18,10 +19,11 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     {% set nav = [
-        ('site_about', 'about', 'About UHAI'),
-        ('site_why', 'why', 'Why UHAI'),
-        ('site_faqs', 'faqs', 'FAQs'),
-        ('site_contact', 'contact', 'Contact'),
+        (url_for('site_about'), 'about', 'About UHAI'),
+        (url_for('site_why'), 'why', 'Why UHAI'),
+        (url_for('site_home') ~ '#next-drive', 'drives', 'Next Blood Drive'),
+        (url_for('site_faqs'), 'faqs', 'FAQs'),
+        (url_for('site_contact'), 'contact', 'Contact'),
     ] %}
 
     <header class="nav" data-nav>
@@ -38,8 +40,8 @@
 
             <nav class="nav__menu" id="nav-menu" aria-label="Main">
                 <ul class="nav__links">
-                    {% for endpoint, key, label in nav %}
-                    <li><a href="{{ url_for(endpoint) }}" {% if page == key %}aria-current="page"{% endif %}>{{ label }}</a></li>
+                    {% for href, key, label in nav %}
+                    <li><a href="{{ href }}" {% if page == key %}aria-current="page"{% endif %}>{{ label }}</a></li>
                     {% endfor %}
                 </ul>
                 <a class="btn btn--primary nav__cta" href="{{ url_for('dashboard_page') }}">
@@ -64,7 +66,7 @@
                 <h2 class="footer__title">Explore</h2>
                 <ul class="footer__links">
                     <li><a href="{{ url_for('site_home') }}">Home</a></li>
-                    {% for endpoint, key, label in nav %}<li><a href="{{ url_for(endpoint) }}">{{ label }}</a></li>{% endfor %}
+                    {% for href, key, label in nav %}<li><a href="{{ href }}">{{ label }}</a></li>{% endfor %}
                 </ul>
             </div>
             <div>
@@ -72,12 +74,24 @@
                 <ul class="footer__links">
                     <li><a href="{{ url_for('dashboard_page') }}">Blood Intelligence dashboard</a></li>
                 </ul>
-                <p class="footer__note">The dashboard currently uses synthetic, illustrative data.</p>
             </div>
         </div>
+        <section class="wrap footer__social" aria-labelledby="follow-title">
+            <h2 class="footer__title" id="follow-title">Follow Uhai</h2>
+            <ul class="social">
+                {% for s in c.SOCIAL %}
+                <li><a class="social__link" href="{{ s.url }}" target="_blank" rel="noopener noreferrer">
+                    <span class="social__icon" aria-hidden="true">{{ social_icon(s.key) }}</span>
+                    <span class="social__body">
+                        <span class="social__name">{{ s.name }}<span class="visually-hidden"> (opens in a new tab)</span></span>
+                        <span class="social__text">{{ s.text }}</span>
+                    </span>
+                </a></li>
+                {% endfor %}
+            </ul>
+        </section>
         <div class="wrap footer__base">
             <span>© UHAI Life Sciences</span>
-            <span>Supporting SDG 3, 10 and 17</span>
         </div>
     </footer>
 

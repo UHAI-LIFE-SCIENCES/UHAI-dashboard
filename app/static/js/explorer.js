@@ -15,11 +15,13 @@ window.UhaiExplorer = (function () {
   const ICONS = {
     bar: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     line: '<path d="M3 17l5-6 4 3 5-7 4 4M3 21h18"/>',
+    area: '<path d="M3 17l5-6 4 3 5-7 4 4v8H3z" fill="currentColor" fill-opacity=".25"/><path d="M3 17l5-6 4 3 5-7 4 4"/>',
+    donut: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5V8.5"/>',
     pie: '<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 2.5A9 9 0 0 1 21.5 9H15z"/>',
     scatter: '<circle cx="7" cy="15" r="1.6"/><circle cx="11" cy="9" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="18" cy="6" r="1.6"/><path d="M3 3v18h18"/>',
     map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'
   };
-  const TYPE_LABELS = { bar: 'Bar chart', line: 'Line chart', pie: 'Pie chart', scatter: 'Scatter plot', map: 'Map' };
+  const TYPE_LABELS = { bar: 'Bar chart', line: 'Line chart', area: 'Area chart', pie: 'Pie chart', donut: 'Donut chart', scatter: 'Scatter plot', map: 'Map' };
   let uid = 0;
 
   // ------------------------------------------------------------------
@@ -33,16 +35,20 @@ window.UhaiExplorer = (function () {
       bar: scatter ? 'This indicator compares two measures; use the scatter plot.' : null,
       line: scatter ? 'This indicator compares two measures; use the scatter plot.'
         : d.time ? null : 'Line charts need a breakdown over time (month or week).',
+      area: scatter || !d.time ? 'Area charts need a breakdown over time.' : null,
       pie: scatter ? 'Not available for a two-measure comparison.'
         : d.time ? 'Pie charts are not used for trends over time.'
         : ind.ratio ? 'Rates and averages are not parts of a whole, so a pie would mislead.'
         : !single ? 'Pie charts show one measure at a time.'
         : d.categories.length > 6 ? 'Pie charts are offered for up to 6 categories; this breakdown has ' + d.categories.length + '.'
         : d.categories.length < 2 ? 'Needs at least two categories.' : null,
+      donut: null,
       scatter: scatter ? null : 'Scatter plots need two numeric measures; choose an indicator marked “vs”.',
       map: d.by === 'facility' && !scatter ? null : 'Maps need a breakdown by recipient facility (Distribution).'
     };
   }
+
+  function withDonut(r) { r.donut = r.pie; return r; }
 
   function defaultType(d, reasons) {
     if (d.indicator.kind === 'scatter') return 'scatter';
@@ -104,7 +110,6 @@ window.UhaiExplorer = (function () {
             <p class="viz__headline"></p>
             <div class="viz__body"></div>
             <div class="viz__selection" aria-live="polite"></div>
-            <footer class="viz__foot"></footer>
           </div>
         </section>`;
       this.q = s => this.el.querySelector(s);
@@ -138,7 +143,7 @@ window.UhaiExplorer = (function () {
     /** Values after display mode (% of total) and sort; keeps a map back to original indices */
     view() {
       const d = this.data, st = this.state;
-      const reasons = typeReasons(d);
+      const reasons = withDonut(typeReasons(d));
       if (!st.type || reasons[st.type]) st.type = defaultType(d, reasons);
       const pctAllowed = !d.indicator.ratio && d.series.length === 1 && !d.time && d.indicator.kind !== 'scatter';
       const pct = pctAllowed && st.display === 'percent';
@@ -162,12 +167,12 @@ window.UhaiExplorer = (function () {
       const isEmpty = !d.categories.length || d.series.every(s => s.values.every(x => x === null || x === 0));
 
       // Rail
-      this.q('.viz__rail').innerHTML = Object.keys(TYPE_LABELS).map(t => {
-        const why = v.reasons[t];
-        return `<button type="button" class="rail-btn ${st.type === t ? 'is-on' : ''}" data-type="${t}" aria-pressed="${st.type === t}"
-          ${why ? 'aria-disabled="true"' : ''} title="${U.esc(why ? TYPE_LABELS[t] + ' — ' + why : TYPE_LABELS[t])}">
-          <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t]}</svg><span class="sr-only">${TYPE_LABELS[t]}${why ? ' (not available: ' + U.esc(why) + ')' : ''}</span></button>`;
-      }).join('');
+      // Only chart types that can show this data are offered
+      const types = (this.opts.types || Object.keys(TYPE_LABELS)).filter(t => !v.reasons[t]);
+      this.q('.viz__rail').innerHTML = types.map(t => `
+        <button type="button" class="rail-btn ${st.type === t ? 'is-on' : ''}" data-type="${t}" aria-pressed="${st.type === t}" title="${TYPE_LABELS[t]}">
+          <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[t]}</svg><span class="sr-only">${TYPE_LABELS[t]}</span></button>`).join('');
+      this.q('.viz').classList.toggle('viz--norail', types.length < 2);
       this.q('.viz__rail').querySelectorAll('[data-type]').forEach(b => b.addEventListener('click', () => {
         if (b.getAttribute('aria-disabled') === 'true') return;
         st.type = b.dataset.type; this.draw();
@@ -176,7 +181,7 @@ window.UhaiExplorer = (function () {
       // Titles
       const title = this.opts.title || (ind.kind === 'scatter' ? ind.label : `${ind.label} by ${d.by_label.toLowerCase()}`);
       this.q('.viz__title').textContent = title;
-      this.q('.viz__subtitle').textContent = filterSummary(d, this.filters, this.opts.meta);
+      this.q('.viz__subtitle').textContent = this.opts.subtitle || ind.description || '';
       const overallBits = d.series.map(s => {
         const o = d.overall[s.key];
         if (o === undefined) return '';            // e.g. cross-dataset comparisons have no single total
@@ -191,8 +196,6 @@ window.UhaiExplorer = (function () {
         b.classList.toggle('is-on', on); b.setAttribute('aria-selected', String(on));
       });
 
-      // Footer
-      this.q('.viz__foot').innerHTML = `${U.esc(ind.description || '')} <span class="viz__src">Source: <code>${U.esc(ind.sourceText || ind.table)}</code> · uhai_dashboard.db · Illustrative data</span>`;
 
       // Body
       const body = this.q('.viz__body');
@@ -268,7 +271,7 @@ window.UhaiExplorer = (function () {
     drawMap(v) {
       const d = this.data, st = this.state, body = this.q('.viz__body');
       body.innerHTML = `<div class="map" id="${this.id}-map" role="region" aria-label="Map of ${U.esc(d.indicator.label.toLowerCase())} by recipient facility"></div>
-        <p class="map-note"><span class="map-key" aria-hidden="true"></span> Eldoret blood bank (origin) · Circle area = ${U.esc(d.series[0].label.toLowerCase())}. Locations are approximate (town level); the database stores facility names only.</p>`;
+        <p class="map-note"><span class="map-key" aria-hidden="true"></span> Eldoret blood bank · circle size shows ${U.esc(d.series[0].label.toLowerCase())} · locations approximate</p>`;
       const go = async () => {
         if (!window.L) { body.innerHTML = U.state('error', 'The map library could not load. Use the Table view.'); return; }
         const geo = await this.opts.locations();
@@ -357,9 +360,8 @@ window.UhaiExplorer = (function () {
         <div class="ex">
           <aside class="ex__panel" aria-label="Chart controls">
             <div class="ex__group">
-              <label class="ex__label" for="${'ind-' + uid}">Indicator</label>
+              <label class="ex__label" for="${'ind-' + uid}">Show</label>
               ${indicatorSelect().replace('data-ex="indicator"', `data-ex="indicator" id="ind-${uid}"`)}
-              <p class="ex__desc" data-ex-desc></p>
             </div>
             <div class="ex__group">
               <label class="ex__label" for="${'by-' + uid}">Compare by</label>
@@ -386,7 +388,7 @@ window.UhaiExplorer = (function () {
     }
 
     const card = new ChartCard(el.querySelector('.ex__viz'), {
-      state: st.chart, compact: cfg.compact, meta: cfg.meta, height: cfg.height, title: cfg.title,
+      state: st.chart, compact: cfg.compact, meta: cfg.meta, height: cfg.height, title: cfg.title, types: cfg.types, subtitle: cfg.subtitle,
       locations: cfg.locations, onResetFilters: cfg.onResetFilters,
       headExtra: cfg.compact && cfg.indicators.length > 1 ? `<label class="sr-only" for="cind-${uid}">Indicator</label>${indicatorSelect('field-select--sm').replace('data-ex="indicator"', `data-ex="indicator" id="cind-${uid}"`)}` : ''
     });

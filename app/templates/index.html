@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UHAI Blood Insights</title>
-    <meta name="description" content="Explore blood sourcing, processing, distribution and transfusion trends.">
+    <title>Uhai Blood Insights</title>
+    <meta name="description" content="Blood supply in Eldoret, from donor to patient.">
     <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <!-- Chart.js and Leaflet (pinned) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -37,21 +38,17 @@
 
     <header class="dh">
         <div class="dh__top">
-            <a class="dh__brand" href="#/overview" aria-label="UHAI Blood Insights, overview">
-                <img src="{{ url_for('static', filename=logo) }}" alt="UHAI logo" width="40" height="53">
+            <a class="dh__brand" href="#/overview" aria-label="Uhai Blood Insights, overview">
+                <img src="{{ url_for('static', filename=logo) }}" alt="Uhai logo" width="40" height="53">
                 <span>
-                    <span class="dh__title">UHAI Blood Insights</span>
-                    <span class="dh__subtitle">Explore blood sourcing, processing, distribution, and transfusion trends.</span>
+                    <span class="dh__title">Uhai Blood Insights</span>
+                    <span class="dh__subtitle">Blood supply in Eldoret, from donor to patient</span>
                 </span>
             </a>
-            <div class="dh__meta">
-                <span class="badge badge--demo" title="Every record in uhai_dashboard.db is synthetic">Illustrative data</span>
-                <span id="source-pill" class="badge badge--source">Connecting…</span>
-                <a class="btn btn--outline btn--sm" href="{{ url_for('site_home') }}">
-                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    UHAI website
-                </a>
-            </div>
+            <a class="back-btn" href="{{ url_for('site_home') }}" aria-label="Back to Uhai website">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4M9 5l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Back to Uhai</span>
+            </a>
         </div>
 
         <nav class="dn" aria-label="Dashboard sections">
@@ -61,13 +58,14 @@
                 <li><a href="#/processing" data-route="processing">Processing</a></li>
                 <li><a href="#/distribution" data-route="distribution">Distribution</a></li>
                 <li><a href="#/transfusions" data-route="transfusions">Transfusions</a></li>
+                <li><a href="#/map" data-route="map">Map</a></li>
                 <li class="dn__more">
                     <button type="button" class="dn__more-btn" aria-expanded="false" aria-controls="more-menu" data-more>
                         More <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                     </button>
                     <ul class="dn__menu" id="more-menu" hidden>
                         <li><a href="#/forecast" data-route="forecast">Forecast <span class="tag">Prototype</span></a></li>
-                        <li><a href="#/quality" data-route="quality">Data quality &amp; definitions</a></li>
+                        <li><a href="#/about" data-route="about">About the data</a></li>
                     </ul>
                 </li>
             </ul>
@@ -81,10 +79,6 @@
         <div class="state state--loading"><span class="spinner" aria-hidden="true"></span> Loading…</div>
     </main>
 
-    <footer class="df">
-        <span>© <a href="{{ url_for('site_home') }}">UHAI Life Sciences</a> · Blood Insights</span>
-        <span id="footer-source"></span>
-    </footer>
 
     <!-- Data layer: mock and API are separate; pages only call UhaiData -->
     <script src="{{ url_for('static', filename='js/services/api_service.js') }}"></script>

@@ -39,17 +39,17 @@ window.UhaiUI = (function () {
       </header>`;
   }
 
-  /** stats: [{ label, value, unit, note }] — one quiet row, no cards */
+  /** stats: [{ label, value, unit, note, alert }] — a row of summary cards; alert = shortage/risk */
   function statRow(stats) {
     return `
-      <dl class="stats">
+      <div class="kcards">
         ${stats.map(s => `
-          <div class="stat">
-            <dt class="stat__label">${esc(s.label)}</dt>
-            <dd class="stat__value">${s.value}${s.unit ? `<span class="stat__unit">${esc(s.unit)}</span>` : ''}</dd>
-            ${s.note ? `<dd class="stat__note">${s.note}</dd>` : ''}
+          <div class="kcard ${s.alert ? 'kcard--alert' : ''}">
+            <p class="kcard__label">${esc(s.label)}</p>
+            <p class="kcard__value">${s.value}${s.unit ? `<span class="kcard__unit">${esc(s.unit)}</span>` : ''}</p>
+            ${s.note ? `<p class="kcard__note">${s.note}</p>` : ''}
           </div>`).join('')}
-      </dl>`;
+      </div>`;
   }
 
   function note(html, tone) {
@@ -131,7 +131,7 @@ window.UhaiUI = (function () {
   // Filter bar
   // ------------------------------------------------------------------
   const FILTER_LABELS = {
-    date: 'Period', blood_group: 'Blood group', product: 'Product', facility: 'Recipient facility',
+    date: 'Period', blood_group: 'Blood group', product: 'Blood product', facility: 'Hospital',
     donor_type: 'Donor type', channel: 'Collection channel'
   };
   const MORE = ['donor_type', 'channel'];

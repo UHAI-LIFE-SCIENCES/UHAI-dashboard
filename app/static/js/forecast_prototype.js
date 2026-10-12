@@ -4,7 +4,7 @@
  * Ordinary least-squares linear trend fitted to complete monthly totals, with
  * an 80% prediction interval. It exists so the Forecasting page can be laid
  * out and reviewed. Replace project() with a call to UHAI's validated model
- * (the pitch deck references one; it is not connected) before any operational use.
+ * before any operational use.
  */
 window.UhaiForecast = (function () {
   'use strict';

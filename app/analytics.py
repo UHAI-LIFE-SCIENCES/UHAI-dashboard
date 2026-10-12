@@ -281,7 +281,7 @@ def sourcing_summary(filters):
 # ==================================================
 
 COMPONENT_COLUMNS = {
-    "Red Cells": "prbc_(units)",
+    "Packed Red Cells": "prbc_(units)",
     "Plasma": "ffp_(units)",
     "Platelets": "platelets_(units)",
     "Cryoprecipitate": "cryoprecipitate_(units)",
@@ -826,3 +826,53 @@ def quality():
     ]
 
     return {"today": today, "tables": tables, "checks": checks, "schema_gaps": schema_gaps}
+
+
+# ==================================================
+# GEOGRAPHY (map tab)
+# ==================================================
+
+# SAMPLE DATA: donor locations are not recorded. Donations are allocated to
+# Uasin Gishu's six sub-counties deterministically by donor ID so the donor
+# layer can be shown; replace with a recorded collection site / sub-county.
+SUB_COUNTIES = ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"]
+SUB_COUNTY_SAMPLE = (
+    "CASE (CAST(substr(patient_id, 11) AS INTEGER) * 7) % 6 "
+    + " ".join(f"WHEN {i} THEN '{n}'" for i, n in enumerate(SUB_COUNTIES))
+    + " END"
+)
+
+
+def geo(filters):
+    qty = q("quantity_(units)")
+    status = q("transfusion_outcome_/_status")
+    vr = q("voluntary/replacement")
+
+    hospitals = _grouped(
+        "distributions",
+        q("recipient_facility"),
+        filters,
+        {
+            "value": f"SUM({qty})",
+            "orders": "COUNT(*)",
+            "delivered": f"SUM(CASE WHEN date_blood_received IS NOT NULL THEN {qty} ELSE 0 END)",
+            "transfused": f"SUM(CASE WHEN {status} LIKE 'Transfused%' THEN {qty} ELSE 0 END)",
+            "returned": f"SUM(CASE WHEN {status} = 'Returned Unused' THEN {qty} ELSE 0 END)",
+        },
+    )
+
+    areas = _grouped(
+        "sourcing",
+        SUB_COUNTY_SAMPLE,
+        filters,
+        {
+            "value": "COUNT(*)",
+            "voluntary_pct": f"ROUND(100.0 * SUM(CASE WHEN {vr} = 'Voluntary' THEN 1 ELSE 0 END) / COUNT(*), 1)",
+        },
+    )
+
+    return {
+        "hospitals": hospitals,
+        "donor_areas": areas,
+        "filters_applied": {t: build_filters(t, filters)[2] for t in ("distributions", "sourcing")},
+    }

@@ -49,7 +49,8 @@ window.UhaiMockService = (function () {
   const INTAKE = [['450 mL (Mobile Drive)', 50], ['450 mL (In-house Walk-in)', 25], ['450 mL (Mobile Outreach)', 12.5], ['350 mL (Mobile Drive)', 12.5]];
   const TTI = [['Non-Reactive (Passed)', 96], ['Reactive: HBV (1.2%)', 1], ['Reactive: HIV 1/2 (0.9%)', 1], ['Reactive: Syphilis (0.6%)', 1], ['Reactive: HCV (0.5%)', 1]];
   const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const PRODUCTS = ['Whole Blood', 'Red Cells', 'Plasma', 'Platelets'];
+  const PRODUCTS = ['Whole Blood', 'Packed Red Cells', 'Plasma', 'Platelets'];
+  const SUB_COUNTIES = ['Ainabkoi', 'Kapseret', 'Kesses', 'Moiben', 'Soy', 'Turbo'];
 
   const START = '2026-01-01';
   const END = '2026-09-30';
@@ -71,6 +72,8 @@ window.UhaiMockService = (function () {
           date: day, sex: rand() < 0.6 ? 'Male' : 'Female', age,
           donor_age_group: (Math.floor((age - 1) / 5) * 5 + 1) + '-' + (Math.floor((age - 1) / 5) * 5 + 5),
           blood_group: pick(GROUPS), blood_product: product,
+          // Sample fields, mirroring the API: red-cell split of whole blood and donor sub-county
+          rbc_sample: rand() < 0.6, sub_county: SUB_COUNTIES[Math.floor(rand() * SUB_COUNTIES.length)],
           'voluntary/replacement': rand() < 0.7 ? 'Voluntary' : 'Family / Replacement',
           'volume_donated_(ml)': product.indexOf('450') > -1 ? 450 : product.indexOf('350') > -1 ? 350 : 250,
           day_of_week: weekday
@@ -128,19 +131,20 @@ window.UhaiMockService = (function () {
   const DIMS = {
     sourcing: {
       date: r => r.date, blood_group: r => r.blood_group, facility: null,
-      product: r => r.blood_product.indexOf('Whole Blood') === 0 ? 'Whole Blood'
+      product: r => sourceProduct(r),
+      _old: r => r.blood_product.indexOf('Whole Blood') === 0 ? 'Whole Blood'
         : r.blood_product === 'Apheresis Platelets' ? 'Platelets' : 'Plasma',
       donor_type: r => r['voluntary/replacement'], channel: null
     },
     processing: { date: null, blood_group: r => r.blood_groups, product: null, facility: null, donor_type: null, channel: r => channelOf(r) },
     distributions: {
       date: r => r.date_blood_ordered, blood_group: null, facility: r => r.recipient_facility,
-      product: r => ({ 'Packed Red Blood Cells': 'Red Cells', 'Fresh Frozen Plasma': 'Plasma', 'Platelet Concentrate': 'Platelets' })[r.type_of_product] || r.type_of_product,
+      product: r => ({ 'Packed Red Blood Cells': 'Packed Red Cells', 'Fresh Frozen Plasma': 'Plasma', 'Platelet Concentrate': 'Platelets' })[r.type_of_product] || r.type_of_product,
       donor_type: null, channel: null
     },
     transfusions: {
       date: r => r.date_blood_first_ordered, blood_group: r => r.blood_group, facility: null,
-      product: r => ({ 'Packed Red Blood Cells': 'Red Cells', 'Fresh Frozen Plasma': 'Plasma' })[r.blood_product_requested] || r.blood_product_requested,
+      product: r => ({ 'Packed Red Blood Cells': 'Packed Red Cells', 'Fresh Frozen Plasma': 'Plasma' })[r.blood_product_requested] || r.blood_product_requested,
       donor_type: null, channel: null
     }
   };
@@ -252,7 +256,7 @@ window.UhaiMockService = (function () {
   // ------------------------------------------------------------------
   // Contract methods
   // ------------------------------------------------------------------
-  const COMPONENTS = { 'Red Cells': 'prbc_(units)', 'Plasma': 'ffp_(units)', 'Platelets': 'platelets_(units)', 'Cryoprecipitate': 'cryoprecipitate_(units)' };
+  const COMPONENTS = { 'Packed Red Cells': 'prbc_(units)', 'Plasma': 'ffp_(units)', 'Platelets': 'platelets_(units)', 'Cryoprecipitate': 'cryoprecipitate_(units)' };
   const isYes = r => r.is_discarded === 'Yes';
 
   function sourcingSummary(f) {
@@ -453,7 +457,7 @@ window.UhaiMockService = (function () {
   };
   const EX_DIMS = {
     sourcing: {
-      blood_group: r => r.blood_group, collection: r => r.blood_product, donor_type: r => r['voluntary/replacement'],
+      blood_group: r => r.blood_group, collection: r => sourceProduct(r), donor_type: r => r['voluntary/replacement'],
       sex: r => r.sex, age_group: r => r.donor_age_group, weekday: r => r.day_of_week
     },
     processing: { blood_group: r => r.blood_groups, channel: channelOf, screening: screenOf, discard_reason: r => r.reason_for_discard },
@@ -540,11 +544,73 @@ window.UhaiMockService = (function () {
     };
   }
 
+
+  function sourceProduct(r) {
+    if (r.blood_product.indexOf('Whole Blood') === 0) return r.rbc_sample ? 'Packed Red Cells' : 'Whole Blood';
+    return r.blood_product === 'Apheresis Platelets' ? 'Platelets' : 'Plasma';
+  }
+
+  async function crosstabMock(query, f) {
+    f = f || {};
+    const res = await fetch((window.UHAI_CONFIG && window.UHAI_CONFIG.catalogUrl) || '/static/data/indicators.json');
+    const catalog = await res.json();
+    const ind = catalog.indicators[query.indicator];
+    const table = ind.table, dims = catalog.dims[table];
+    const fn = EX_MEASURES[query.indicator][ind.measures[0].key];
+    const list = rows(table, f);
+    const keyOf = d => dims[d].time ? (r => periodOf(DIMS[table].date(r), dims[d].time)) : EX_DIMS[table][d];
+    const ka = keyOf(query.by), kb = keyOf(query.by2);
+    const cells = new Map();
+    list.forEach(r => {
+      const k = ka(r) + '\u0001' + kb(r);
+      if (!cells.has(k)) cells.set(k, []);
+      cells.get(k).push(r);
+    });
+    const orderFor = (d, getter) => {
+      const vals = [...new Set(list.map(getter))];
+      if (dims[d].time) { vals.sort(); return vals.length ? allPeriods(vals[0], vals[vals.length - 1], dims[d].time) : []; }
+      if (EX_ORDER[d]) return vals.sort((a, b) => EX_ORDER[d](a) - EX_ORDER[d](b));
+      const tot = {};
+      list.forEach(r => { const v = getter(r); tot[v] = (tot[v] || 0) + 1; });
+      return vals.sort((a, b) => tot[b] - tot[a]);
+    };
+    const rowsOrder = orderFor(query.by, ka), colsOrder = orderFor(query.by2, kb);
+    return {
+      indicator: Object.assign({ key: query.indicator }, ind),
+      by: query.by, by_label: dims[query.by].label, by2: query.by2, by2_label: dims[query.by2].label,
+      time: dims[query.by].time || null, rows: rowsOrder, cols: colsOrder,
+      values: rowsOrder.map(a => colsOrder.map(b => {
+        const g = cells.get(a + '\u0001' + b);
+        return g && g.length ? round2(fn(g)) : (ind.ratio ? null : 0);
+      })),
+      unit: ind.measures[0].unit || ind.unit, filters_applied: applied(table, f)
+    };
+  }
+
+  function geoMock(f) {
+    const d = rows('distributions', f);
+    const qty = r => r['quantity_(units)'];
+    const st = r => r['transfusion_outcome_/_status'];
+    const s = rows('sourcing', f);
+    return {
+      hospitals: grouped(d, r => r.recipient_facility, {
+        value: g => sum(g, qty), orders: g => g.length, delivered: g => sum(g, qty),
+        transfused: g => sum(g.filter(r => st(r).indexOf('Transfused') === 0), qty),
+        returned: g => sum(g.filter(r => st(r) === 'Returned Unused'), qty)
+      }),
+      donor_areas: grouped(s, r => r.sub_county, {
+        value: g => g.length,
+        voluntary_pct: g => pct(count(g, r => r['voluntary/replacement'] === 'Voluntary'), g.length)
+      }),
+      filters_applied: { distributions: applied('distributions', f), sourcing: applied('sourcing', f) }
+    };
+  }
+
   const delay = v => new Promise(res => setTimeout(() => res(v), 60));
 
   return {
     kind: 'mock',
-    describe: function () { return 'Mock data module (static/js/services/mock_data.js) — not from uhai_dashboard.db'; },
+    describe: function () { return 'Offline sample data'; },
     ping: function () { return delay({ total_records: DB.sourcing.length, database: 'mock' }); },
     meta: function () {
       return delay({
@@ -592,6 +658,8 @@ window.UhaiMockService = (function () {
       });
     },
     explore: function (query, f) { return exploreMock(query, f); },
+    crosstab: function (query, f) { return crosstabMock(query, f); },
+    geo: function (f) { return delay(geoMock(f || {})); },
     quality: function () { return delay(quality()); }
   };
 })();

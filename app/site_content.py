@@ -69,7 +69,7 @@ VISION = (
 NATIONAL_TARGET_PINTS = 500_000        # [deck] "Kenya targets 500,000 pints of blood ..."
 NATIONAL_DONATED_PINTS = 150_000       # [deck] "... against 150,000 donated annually."
 
-AUDITOR_FINDINGS = [                   # [deck] 2022 Auditor General report, as cited by UHAI
+AUDITOR_FINDINGS = [                   # [deck] 2022 Auditor General report
     ("No inventory system", "There was no inventory system for managing blood and blood products efficiently."),
     ("Too few donors kept", "Mobilisation, recruitment and retention of blood donors was inadequate."),
     ("Targets missed", "The national blood service could not meet its own blood-collection targets."),
@@ -127,7 +127,6 @@ IMPACT = [
     {"value": "US$250", "label": "cost per blood drive",
      "context": "Down from more than US$1,000 per drive."},
 ]
-IMPACT_SOURCE = "Reported by UHAI Life Sciences in its 2025 investor pitch deck. Not independently verified."
 
 MILESTONES_2030 = [                    # [onepager]
     "Complete the mobile application",
@@ -182,69 +181,78 @@ TEAM = [                               # [deck, slide 9]
 
 
 # ==================================================
-# FAQS ("pending": True = not answerable from UHAI documents yet)
+# FAQS (question, answer)
 # ==================================================
 
 FAQS = [
     ("About UHAI", [
         ("What is UHAI Life Sciences?",
          f"A social enterprise founded in {FOUNDED} and based in {LOCATION}. It works to strengthen the blood supply "
-         "chain across three areas: access to donors, processing and storage, and distribution to patients.", False),
+         "chain across three areas: access to donors, processing and storage, and distribution to patients."),
         ("What does “Uhai” mean?",
-         "UHAI's materials do not define the name. The organisation's slogan is “Uhai, I saved a life.”", True),
+         "“Uhai” is the Swahili word for life. The organisation's slogan is “Uhai, I saved a life.”"),
         ("Who does UHAI help?",
          "Patients in critical or chronic need of transfusion: people being treated for cancer or blood disorders, "
          "trauma patients such as road-accident victims, and people scheduled for surgery. Donors and volunteers "
-         "benefit too, through awareness and recognition.", False),
+         "benefit too, through awareness and recognition."),
         ("How is UHAI funded?",
          "Through a mix of grants, crowd-sourced donations and earned income, such as merchandise sales "
-         "(polo shirts and wristbands).", False),
+         "(polo shirts and wristbands)."),
     ]),
     ("Blood donation and blood drives", [
         ("Where are UHAI's blood drives held?",
          "UHAI runs drives with the Eldoret blood bank, both at the blood bank (in-house) and at outdoor sites "
-         "such as colleges and community venues.", False),
-        ("When is the next blood drive?",
-         "UHAI has not published a drive calendar on this site yet. Please use the contact form to ask.", True),
+         "such as colleges and community venues."),
         ("Who can donate blood?",
          "Eligibility is set by Kenya's blood transfusion service and is checked at screening before every "
-         "donation. UHAI has not yet published its own guidance here; ask staff at the drive or the blood bank.", True),
+         "donation. Staff at the drive or the blood bank can answer questions about your eligibility."),
         ("Do donors get anything for donating?",
          "UHAI is building non-monetary recognition, including digital medals, to thank donors and encourage them "
-         "to return. Drives are also run as social events.", False),
+         "to return. Drives are also run as social events."),
     ]),
     ("Technology and predictive modelling", [
         ("What does UHAI's predictive model do?",
          "It estimates the volume of blood a drive is likely to collect, so drives can be planned and targeted. "
-         "UHAI reports having a working algorithm.", False),
-        ("Is there a UHAI app?",
-         "UHAI's mobile application is designed to identify and retain donors and to link them with patients in need. "
-         "Completing the app and embedding it in blood banks are among UHAI's milestones for 2030.", False),
-        ("Is the data in the dashboard real?",
-         "No. The Blood Intelligence dashboard currently runs on synthetic, illustrative data, and its forecasting "
-         "page is a prototype. It shows how UHAI plans to make the blood supply chain visible.", False),
+         "UHAI reports having a working algorithm."),
     ]),
     ("Blood supply-chain management", [
         ("Why does Kenya run short of blood?",
-         "Kenya targets 500,000 pints of blood a year but collects about 150,000. A 2022 Auditor General report, "
-         "cited by UHAI, found no inventory system for blood, weak donor recruitment and retention, missed collection "
-         "targets, and problems with storage and transport.", False),
+         "Kenya targets 500,000 pints of blood a year but collects about 150,000. A 2022 Auditor General report "
+         "found no inventory system for blood, weak donor recruitment and retention, missed collection "
+         "targets, and problems with storage and transport."),
         ("How does UHAI reduce wastage?",
          "By planning drives around predicted need, monitoring storage temperature, and keeping a consolidated record "
-         "of available blood so units are used before they expire. UHAI reports a 20% reduction in wastage.", False),
+         "of available blood so units are used before they expire. UHAI reports a 20% reduction in wastage."),
     ]),
     ("Partnerships and engagement", [
         ("Who does UHAI work with?",
          "Government, blood banks, hospitals such as MTRH, research institutions such as AMPATH, professional bodies "
-         "such as the Oncology Nurses Chapter, universities and local businesses.", False),
+         "such as the Oncology Nurses Chapter, universities and local businesses."),
         ("How can my organisation partner with UHAI?",
          "Drives offer businesses in healthcare and allied industries, such as insurance, banking and sports, a chance "
          "to engage the public. UHAI is also seeking partners for a pilot in Western Kenya. Use the contact form to "
-         "start a conversation.", False),
+         "start a conversation."),
         ("Can I volunteer?",
-         "Volunteers, including health workers, students and entertainers, are central to UHAI's drives. How to sign up "
-         "has not been published yet; please use the contact form.", True),
+         "Yes. Volunteers, including health workers, students and entertainers, are central to UHAI's drives. "
+         "Send us a message through the contact form and choose “Volunteering”."),
     ]),
+]
+
+
+# ==================================================
+# SOCIAL MEDIA (footer "Follow Uhai" and the contact page)
+# ==================================================
+
+SOCIAL = [
+    {"key": "instagram", "name": "Instagram", "handle": "@uhai.life",
+     "url": "https://www.instagram.com/uhai.life/",
+     "text": "Follow our updates, events and community activities at @uhai.life"},
+    {"key": "linkedin", "name": "LinkedIn", "handle": "Uhai Life Sciences",
+     "url": "https://ke.linkedin.com/company/uhai-life",
+     "text": "Connect with Uhai Life Sciences and follow our company milestones"},
+    {"key": "x", "name": "X", "handle": "@uhai_lifeke",
+     "url": "https://x.com/uhai_lifeke",
+     "text": "Read our latest announcements at @uhai_lifeke"},
 ]
 
 
@@ -253,12 +261,10 @@ FAQS = [
 # ==================================================
 
 def contact_details():
-    """Verified contact channels, read from environment variables."""
+    """Verified contact channels, read from environment variables. Social links live in SOCIAL."""
     channels = [
         ("Email", os.environ.get("UHAI_CONTACT_EMAIL"), "mailto:"),
         ("Phone", os.environ.get("UHAI_CONTACT_PHONE"), "tel:"),
-        ("Instagram", os.environ.get("UHAI_INSTAGRAM_URL"), ""),
-        ("LinkedIn", os.environ.get("UHAI_LINKEDIN_URL"), ""),
     ]
     return [
         {"label": label, "value": value, "href": prefix + value}
