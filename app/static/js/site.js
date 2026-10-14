@@ -39,7 +39,7 @@ const BLOOD_STOCK = {
       if (e.key === 'Escape' && nav.classList.contains('is-open')) { setMenu(false); toggle.focus(); }
     });
     document.addEventListener('click', e => { if (!nav.contains(e.target)) setMenu(false); });
-    // In-page links (Next Blood Drive) should close the mobile menu
+    // Any menu link should close the mobile menu
     nav.querySelectorAll('.nav__links a').forEach(a => a.addEventListener('click', () => setMenu(false)));
     window.matchMedia('(min-width: 1101px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
 

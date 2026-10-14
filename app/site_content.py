@@ -52,6 +52,8 @@ GALLERY = ["drive-banner", "donor-registration", "team-group", "event-tablet", "
 # FACTS
 # ==================================================
 
+TAGLINE = "Vein to Vein Blood Supply Chain Strengthening"
+
 FOUNDED = "2023"                       # [elevator]
 LOCATION = "Eldoret, Kenya"            # [onepager]
 

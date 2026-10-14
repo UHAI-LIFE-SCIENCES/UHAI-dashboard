@@ -107,6 +107,7 @@ def dashboard_page():
         "index.html",
         api_base=API_BASE,
         data_source=DATA_SOURCE,
+        tagline=site_content.TAGLINE,
     )
 
 

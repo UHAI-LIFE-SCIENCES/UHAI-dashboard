@@ -9,6 +9,7 @@
   const Pages = window.UhaiPages;
   const view = document.getElementById('view');
   const filtersEl = document.getElementById('filters');
+  const BASE_TITLE = document.title;            // "Uhai Blood Insights · <tagline>", from the template
 
   // Older links (from the previous dashboard layout) still land somewhere sensible
   const ALIASES = {
@@ -106,7 +107,7 @@
     app.pageState[route] = app.pageState[route] || {};
     setActiveNav(route);
     writeHash();
-    document.title = page.title + ' · Uhai Blood Insights';
+    document.title = page.title + ' · ' + BASE_TITLE;
     renderFilterBar();
 
     view.classList.remove('is-entering');

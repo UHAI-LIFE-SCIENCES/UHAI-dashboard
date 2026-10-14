@@ -39,14 +39,20 @@ window.UhaiUI = (function () {
       </header>`;
   }
 
-  /** stats: [{ label, value, unit, note, alert }] — a row of summary cards; alert = shortage/risk */
-  function statRow(stats) {
+  /**
+   * stats: [{ label, value, unit, note, alert, bar: { value, label } }] — a row of summary cards;
+   * alert = shortage/risk; bar = progress towards 100%. opts.cols = 3 for a three-column row.
+   */
+  function statRow(stats, opts) {
+    opts = opts || {};
     return `
-      <div class="kcards">
+      <div class="kcards ${opts.cols === 3 ? 'kcards--3' : ''}">
         ${stats.map(s => `
           <div class="kcard ${s.alert ? 'kcard--alert' : ''}">
             <p class="kcard__label">${esc(s.label)}</p>
             <p class="kcard__value">${s.value}${s.unit ? `<span class="kcard__unit">${esc(s.unit)}</span>` : ''}</p>
+            ${s.bar ? `<div class="kcard__bar" role="progressbar" aria-label="${esc(s.bar.label)}" aria-valuemin="0" aria-valuemax="100"
+              aria-valuenow="${s.bar.value}" title="${esc(s.bar.label)}: ${s.bar.value}%"><span style="width:${Math.max(0, Math.min(100, s.bar.value))}%"></span></div>` : ''}
             ${s.note ? `<p class="kcard__note">${s.note}</p>` : ''}
           </div>`).join('')}
       </div>`;
@@ -70,7 +76,7 @@ window.UhaiUI = (function () {
       <div class="table-wrap"><table class="dtable">
         ${opts.caption ? `<caption class="sr-only">${esc(opts.caption)}</caption>` : ''}
         <thead><tr>${columns.map(c => `<th scope="col" class="${c.num ? 'num' : ''}">${esc(c.label)}</th>`).join('')}</tr></thead>
-        <tbody>${rows.length ? rows.map((r, i) => `<tr class="${opts.selected === i ? 'is-selected' : ''}">${columns.map(c => {
+        <tbody>${rows.length ? rows.map((r, i) => `<tr class="${opts.selected === i ? 'is-selected' : ''} ${opts.totalLast && i === rows.length - 1 ? 'is-total' : ''}">${columns.map(c => {
           const v = typeof c.value === 'function' ? c.value(r) : r[c.key];
           return `<td class="${c.num ? 'num' : ''}">${c.html ? v : c.num ? fmt(v, c.unit) : esc(v)}</td>`;
         }).join('')}</tr>`).join('') : `<tr><td colspan="${columns.length}" class="empty">No records match the current filters.</td></tr>`}</tbody>

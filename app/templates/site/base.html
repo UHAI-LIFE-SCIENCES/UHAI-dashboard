@@ -4,8 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if page_title %}{{ page_title }} · {% endif %}UHAI Life Sciences</title>
-    <meta name="description" content="{% block description %}UHAI Life Sciences strengthens Kenya's blood supply chain through blood drives, predictive modelling and better data.{% endblock %}">
+    <title>{% if page_title %}{{ page_title }} · UHAI Life Sciences{% else %}UHAI Life Sciences · {{ c.TAGLINE }}{% endif %}</title>
+    <meta name="description" content="{{ c.TAGLINE }}. {% block description %}UHAI Life Sciences strengthens Kenya's blood supply chain through blood drives, predictive modelling and better data.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="UHAI Life Sciences">
+    <meta property="og:title" content="{% if page_title %}{{ page_title }} · {% endif %}UHAI Life Sciences: {{ c.TAGLINE }}">
+    <meta property="og:description" content="{{ c.TAGLINE }}. {{ self.description() }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="UHAI Life Sciences: {{ c.TAGLINE }}">
+    <meta name="twitter:description" content="{{ c.TAGLINE }}. {{ self.description() }}">
     <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +28,6 @@
     {% set nav = [
         (url_for('site_about'), 'about', 'About UHAI'),
         (url_for('site_why'), 'why', 'Why UHAI'),
-        (url_for('site_home') ~ '#next-drive', 'drives', 'Next Blood Drive'),
         (url_for('site_faqs'), 'faqs', 'FAQs'),
         (url_for('site_contact'), 'contact', 'Contact'),
     ] %}
@@ -60,13 +66,14 @@
         <div class="wrap footer__grid">
             <div class="footer__brand">
                 <img src="{{ url_for('static', filename=logo) }}" alt="UHAI logo" width="56" height="74" loading="lazy">
-                <p>Strengthening the blood supply chain, from donor to patient.<br>{{ c.LOCATION }}</p>
+                <p>{{ c.TAGLINE }}<br>{{ c.LOCATION }}</p>
             </div>
             <div>
                 <h2 class="footer__title">Explore</h2>
                 <ul class="footer__links">
                     <li><a href="{{ url_for('site_home') }}">Home</a></li>
                     {% for href, key, label in nav %}<li><a href="{{ href }}">{{ label }}</a></li>{% endfor %}
+                    <li><a href="{{ url_for('site_home') }}#next-drive">Next Blood Drive</a></li>
                 </ul>
             </div>
             <div>

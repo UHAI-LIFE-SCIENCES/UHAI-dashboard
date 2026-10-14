@@ -41,7 +41,13 @@ window.UhaiPages = (function () {
     }, extra);
   }
 
-  /** Simple chart panel: title, one-line description, body, optional table toggle */
+  const DOWNLOAD_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10M6 9l4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  /**
+   * Simple chart panel: title, one-line description, body, optional table toggle,
+   * and a CSV download of whatever setPanelData() last stored.
+   * opts.tableBelow shows the table under the chart instead of behind a toggle.
+   */
   function panel(title, subtitle, opts) {
     opts = opts || {};
     const id = 'pn-' + (++uid);
@@ -54,23 +60,38 @@ window.UhaiPages = (function () {
               <h2 class="panel__title">${U.esc(title)}</h2>
               ${subtitle ? `<p class="panel__sub">${U.esc(subtitle)}</p>` : ''}
             </div>
-            ${opts.table ? `<div class="tabs" role="tablist" aria-label="View">
-              <button type="button" role="tab" class="tabs__btn is-on" aria-selected="true" data-pv="graphic">Graphic</button>
-              <button type="button" role="tab" class="tabs__btn" aria-selected="false" data-pv="table">Table</button></div>` : ''}
+            <div class="panel__actions">
+              ${opts.table ? `<div class="tabs" role="tablist" aria-label="View">
+                <button type="button" role="tab" class="tabs__btn is-on" aria-selected="true" data-pv="graphic">Graphic</button>
+                <button type="button" role="tab" class="tabs__btn" aria-selected="false" data-pv="table">Table</button></div>` : ''}
+              <button type="button" class="icon-btn" data-pdownload title="Download as CSV" disabled>${DOWNLOAD_ICON}<span>Download</span></button>
+            </div>
           </header>
           <div class="panel__body" style="${opts.height ? `height:${opts.height}px` : ''}">${U.state('loading', 'Loading…')}</div>
-          <div class="panel__table" hidden></div>
+          <div class="panel__table ${opts.tableBelow ? 'panel__table--below' : ''}" ${opts.tableBelow ? '' : 'hidden'}></div>
         </section>`
     };
   }
 
+  /** Store the rows a panel's Download button exports */
+  function setPanelData(root, title, cols, rows) {
+    if (!root) return;
+    root._csv = { title, cols, rows };
+    const btn = root.querySelector('[data-pdownload]');
+    if (btn) btn.disabled = !rows.length;
+  }
+
   function bindPanelTabs(root) {
-    root.querySelectorAll('.panel').forEach(pn => pn.querySelectorAll('[data-pv]').forEach(b => b.addEventListener('click', () => {
-      const table = b.dataset.pv === 'table';
-      pn.querySelector('.panel__body').hidden = table;
-      pn.querySelector('.panel__table').hidden = !table;
-      pn.querySelectorAll('[data-pv]').forEach(x => { x.classList.toggle('is-on', x === b); x.setAttribute('aria-selected', String(x === b)); });
-    })));
+    root.querySelectorAll('.panel').forEach(pn => {
+      pn.querySelectorAll('[data-pv]').forEach(b => b.addEventListener('click', () => {
+        const table = b.dataset.pv === 'table';
+        pn.querySelector('.panel__body').hidden = table;
+        pn.querySelector('.panel__table').hidden = !table;
+        pn.querySelectorAll('[data-pv]').forEach(x => { x.classList.toggle('is-on', x === b); x.setAttribute('aria-selected', String(x === b)); });
+      }));
+      const dl = pn.querySelector('[data-pdownload]');
+      if (dl) dl.addEventListener('click', () => { if (pn._csv) U.downloadCsv(pn._csv.title, pn._csv.cols, pn._csv.rows); });
+    });
   }
 
   function panelEmpty(body, ctx) {
@@ -96,12 +117,13 @@ window.UhaiPages = (function () {
           if (!document.getElementById(pn.id)) return;
           body.classList.remove('is-loading');
           const flat = d.values.flat();
-          if (!d.rows.length || flat.every(v => !v)) { panelEmpty(body, ctx); root.querySelector('.panel__table').innerHTML = ''; return; }
+          if (!d.rows.length || flat.every(v => !v)) { panelEmpty(body, ctx); root.querySelector('.panel__table').innerHTML = ''; setPanelData(root, cfg.title, [], []); return; }
           const rowNames = d.rows.map(r => periodLabel(d, r));
           const colFmt = c => d.by2 === 'month' ? U.dateLabel(c) : c;
           const cols = [{ key: 'r', label: d.by_label }].concat(d.cols.map((c, j) => ({ key: 'c' + j, label: colFmt(c), num: true, unit: d.unit })));
           const rows = rowNames.map((r, i) => Object.assign({ r }, ...d.cols.map((c, j) => ({ ['c' + j]: d.values[i][j] }))));
           root.querySelector('.panel__table').innerHTML = U.tableHtml(cols, rows);
+          setPanelData(root, cfg.title, cols, rows);
           if (cfg.kind === 'heatmap') {
             body.style.height = '';
             body.innerHTML = C.heatmapHtml({ rows: rowNames, cols: d.cols, values: d.values, unit: d.unit, rowLabel: d.by_label, formatCol: colFmt, label: cfg.title });
@@ -160,6 +182,7 @@ window.UhaiPages = (function () {
         if (!root || !d) return;
         const body = root.querySelector('.panel__body');
         const steps = cfg.steps(d);
+        setPanelData(root, cfg.title, [{ key: 'label', label: 'Step' }, { key: 'value', label: 'Units' }], steps[0].value ? steps : []);
         if (!steps[0].value) { panelEmpty(body, ctx); return; }
         body.innerHTML = `<canvas id="${pn.id}-c" role="img" aria-label="${U.esc(cfg.title)}: ${steps.map(s => s.label + ' ' + n0(s.value)).join(', ')}"></canvas>`;
         C.funnel(body.querySelector('canvas'), { steps, unit: cfg.unit || 'units' });
@@ -170,68 +193,101 @@ window.UhaiPages = (function () {
   // ==================================================================
   // OVERVIEW
   // ==================================================================
+  // Overview is built from the reported figures (services/reported_figures.js).
+  // They are fixed yearly reports, so the date and category filters do not apply here.
+  const pct0 = v => Math.round(v) + '%';
+
+  /** Chart panel with its table below; chart and table read the same rows */
+  function reportedPanel(root, cfg) {
+    const el = root.querySelector('#' + cfg.pn.id);
+    const body = el.querySelector('.panel__body');
+    const rows = cfg.rows.concat(cfg.total ? [cfg.total] : []);
+    el.querySelector('.panel__table').innerHTML = U.tableHtml(cfg.cols, rows, { totalLast: !!cfg.total, caption: cfg.title });
+    setPanelData(el, cfg.title, cfg.cols, rows);
+    if (!C.ready()) { body.innerHTML = U.state('error', '<b>The chart could not load.</b> The table below lists the same figures.'); return; }
+    body.innerHTML = `<canvas id="${cfg.pn.id}-c" role="img" aria-label="${U.esc(cfg.title)}"></canvas>`;
+    C.bar(body.querySelector('canvas'), {
+      labels: cfg.rows.map(cfg.label), unit: 'units', valueTitle: 'Units',
+      series: cfg.series.map((s, i) => ({ name: s.name, values: cfg.rows.map(r => r[s.key]), color: cfg.series.length > 1 ? C.CATEGORICAL[i] : C.COLORS.purple }))
+    });
+  }
+
   const overview = {
     title: 'Overview',
-    filters: ['date', 'blood_group', 'product', 'facility', 'donor_type'],
-    hints: { facility: 'deliveries only', donor_type: 'donations only' },
+    filters: [],
     mount(ctx) {
-      const g = panel('Fulfilment rate', 'Share of units requested for patients that were given.', { height: 250 });
-      ctx.el.innerHTML = `
-        ${U.sectionHead({ title: 'Overview', lead: '<span data-lead>Loading…</span>' })}
-        <div data-stats></div>
+      const R = window.UhaiReported;
+      const T = R.target, QT = R.quarterlyTotals;
+      const discardRate = 100 * QT.discards / QT.collection;
+      const shortMonth = m => m.replace(/^(\w{3})\w*/, '$1');
+      const withTotal = (label, totals, key) => Object.assign({ [key]: label }, totals);
+
+      const pMonthly = panel('Whole blood collections', 'RBTC Eldoret, July 2025 – June 2026', { height: 320, tableBelow: true });
+      const pQuarter = panel('Collection, grouping, screening and components', 'RBTC Eldoret, FY 2024/25', { height: 340, tableBelow: true });
+      const pDiscard = panel('Discards', 'RBTC Eldoret, FY 2024/25', { height: 340, tableBelow: true });
+      const pReport = panel('Quarterly report', 'RBTC Eldoret, FY 2025/26', { height: 320, tableBelow: true });
+
+      ctx.el.innerHTML = `<div class="ov">
+        ${U.sectionHead({ title: 'Overview', lead: 'Blood collection at RBTC Eldoret, and progress towards the national target.' })}
+        ${U.statRow([
+          {
+            label: 'Achievement of target (projected) donations', value: pct0(T.achievementPct),
+            note: `${n0(T.collected)} of ${n0(T.need)} units · ${T.year}`,
+            bar: { value: T.achievementPct, label: 'Achievement of target (projected) donations' }
+          },
+          { label: 'Whole blood collected', value: n0(R.monthlyTotal), unit: 'units', note: 'July 2025 – June 2026' },
+          { label: 'Total collected', value: n0(QT.collection), unit: 'units', note: 'FY 2024/25, Q1–Q4' },
+          { label: 'Total screened', value: n0(QT.screening), unit: 'units', note: 'FY 2024/25, Q1–Q4' },
+          { label: 'Total discarded', value: n0(QT.discards), unit: 'units', note: 'FY 2024/25, Q1–Q4', alert: true },
+          { label: 'Discard rate', value: pct0(discardRate), note: `${n0(QT.discards)} of ${n0(QT.collection)} units collected`, alert: true }
+        ], { cols: 3 })}
+        ${pMonthly.html}
+        <h2 class="ov__title">Eldoret quarterly collections, screening and discards</h2>
         <div class="grid-main">
-          <div data-main></div>
-          ${g.html}
+          ${pQuarter.html}
+          ${pDiscard.html}
         </div>
-        <div class="grid-2">
-          <div data-donut></div>
-          <div data-product></div>
-        </div>`;
-      ctx.state.main = ctx.state.main || { chart: { type: 'area' } };
-      ctx.state.donut = ctx.state.donut || { chart: { type: 'donut' } };
-      ctx.state.product = ctx.state.product || { chart: { type: 'bar' } };
+        ${pReport.html}
+      </div>`;
+      bindPanelTabs(ctx.el);
 
-      const main = X.mount(ctx.el.querySelector('[data-main]'), explorerOptions(ctx, {
-        compact: true, indicators: ['units_requested_given', 'donations', 'units_distributed'], dims: ['month', 'week'],
-        defaultBy: 'month', state: ctx.state.main, height: 330, types: ['area', 'line', 'bar'], title: 'Blood supply and demand over time'
-      }));
-      const donut = X.mount(ctx.el.querySelector('[data-donut]'), explorerOptions(ctx, {
-        compact: true, indicators: ['donations'], dims: ['blood_group'], defaultBy: 'blood_group', state: ctx.state.donut,
-        types: ['donut', 'pie', 'bar'], title: 'Donations by blood group', subtitle: 'Each blood group keeps the same colour on every chart.', height: 320
-      }));
-      const product = X.mount(ctx.el.querySelector('[data-product]'), explorerOptions(ctx, {
-        compact: true, indicators: ['units_distributed'], dims: ['product'], defaultBy: 'product', state: ctx.state.product,
-        types: ['bar', 'donut'], title: 'Units sent to hospitals by product', subtitle: 'Units of each blood product distributed.', height: 320
-      }));
+      reportedPanel(ctx.el, {
+        pn: pMonthly, title: 'Whole blood collections', rows: R.monthly.map((r, i) => Object.assign({ sno: i + 1 }, r)), label: r => shortMonth(r.month),
+        series: [{ name: 'Collection', key: 'collection' }],
+        cols: [{ key: 'sno', label: 'S/No' }, { key: 'month', label: 'Month' }, { key: 'collection', label: 'Collection', num: true }],
+        total: { sno: '', month: 'Total', collection: R.monthlyTotal }
+      });
 
-      const refresh = async () => {
-        const d = await refreshStats(ctx, d => {
-          const s = d.sourcing.kpis, x = d.distributions.kpis, t = d.transfusions.kpis;
-          return [
-            { label: 'Donations', value: n0(s.donations), note: `${n1(s.volume_l)} litres collected` },
-            { label: 'Units sent to hospitals', value: n0(x.units), note: `${n0(x.facilities)} hospitals` },
-            { label: 'Units requested for patients', value: n0(t.units_requested), note: `${n0(t.requests)} requests` },
-            { label: 'Unmet units', value: n1(t.units_short), note: `${pct(t.unfulfilled_pct)} of requests got nothing`, alert: true }
-          ];
-        });
-        const lead = ctx.el.querySelector('[data-lead]');
-        if (d) {
-          const t = d.transfusions.kpis;
-          lead.innerHTML = `${U.dateLabel(ctx.filters.from)} – ${U.dateLabel(ctx.filters.to)}: patients received <b>${n1(t.units_given)}</b> of
-            <b>${n0(t.units_requested)}</b> units requested.`;
-          const body = document.querySelector('#' + g.id + ' .panel__body');
-          body.innerHTML = `<canvas id="${g.id}-c" role="img" aria-label="Fulfilment rate ${pct(t.fulfilment_pct)}"></canvas>`;
-          C.gauge(body.querySelector('canvas'), { value: t.fulfilment_pct, label: 'Fulfilment rate', caption: 'of units requested were given', alertBelow: 80 });
-          const legend = document.createElement('p');
-          legend.className = 'gauge-note';
-          legend.innerHTML = t.fulfilment_pct < 80 ? '<span class="dot-alert"></span> Below the 80% mark: demand is not being met.' : 'At or above the 80% mark.';
-          body.appendChild(legend);
-        }
-      };
-      refresh();
-      return {
-        update(next) { ctx.filters = next.filters; refresh(); main.update(next.filters); donut.update(next.filters); product.update(next.filters); }
-      };
+      reportedPanel(ctx.el, {
+        pn: pQuarter, title: 'Eldoret quarterly collection, grouping, screening and components FY 2024-25', rows: R.quarterly, label: r => r.quarter,
+        series: [
+          { name: 'Blood collection', key: 'collection' }, { name: 'Blood grouping', key: 'grouping' },
+          { name: 'Blood screening', key: 'screening' }, { name: 'Components', key: 'components' }
+        ],
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'collection', label: 'Blood collection', num: true },
+          { key: 'grouping', label: 'Blood grouping', num: true }, { key: 'screening', label: 'Blood screening', num: true },
+          { key: 'components', label: 'Components', num: true }, { key: 'discards', label: 'Discards', num: true }],
+        total: withTotal('Total', QT, 'quarter')
+      });
+
+      reportedPanel(ctx.el, {
+        pn: pDiscard, title: 'Eldoret quarterly discards FY 2024-25', rows: R.quarterly, label: r => r.quarter,
+        series: [{ name: 'Discards', key: 'discards' }],
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'discards', label: 'Discards', num: true }],
+        total: { quarter: 'Total', discards: QT.discards }
+      });
+
+      reportedPanel(ctx.el, {
+        pn: pReport, title: 'Eldoret quarterly report FY 2025-26', rows: R.quarterlyReport, label: r => r.quarter,
+        series: [{ name: 'Whole blood collection', key: 'collection' }, { name: 'Blood donor counselling & education', key: 'counselling' }],
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'collection', label: 'Whole blood collection', num: true },
+          { key: 'counselling', label: 'Blood donor counselling & education', num: true }, { key: 'cme', label: 'Continuous medical education', num: true },
+          { key: 'sessions', label: 'Session recruitment', num: true }, { key: 'apheretic', label: 'Apheretic components', num: true },
+          { key: 'postDonation', label: 'Post donation care', num: true }],
+        total: withTotal('Total', R.quarterlyReportTotals, 'quarter')
+      });
+
+      return { update() {} };
     }
   };
 
@@ -551,8 +607,10 @@ window.UhaiPages = (function () {
         drawChart = box => {
           const b = box.querySelector('.panel__body');
           b.innerHTML = '<canvas id="fc-chart" role="img" aria-label="Recorded and projected donations and units requested"></canvas>';
-          box.querySelector('.panel__table').innerHTML = U.tableHtml([{ key: 'month', label: 'Month' }, { key: 'don', label: 'Donations (projected)', num: true },
-            { key: 'req', label: 'Units requested (projected)', num: true }, { key: 'gap', label: 'Gap', num: true }], rows);
+          const fcCols = [{ key: 'month', label: 'Month' }, { key: 'don', label: 'Donations (projected)', num: true },
+            { key: 'req', label: 'Units requested (projected)', num: true }, { key: 'gap', label: 'Gap', num: true }];
+          box.querySelector('.panel__table').innerHTML = U.tableHtml(fcCols, rows);
+          setPanelData(box.querySelector('.panel'), 'Donations and units requested projected', fcCols, rows);
           C.line(b.querySelector('canvas'), {
             labels: all.map(U.dateLabel), unit: 'units', valueTitle: 'Donations / units',
             series: [
@@ -618,8 +676,9 @@ window.UhaiPages = (function () {
         })));
         const b = box.querySelector('#' + pn.id + ' .panel__body');
         b.innerHTML = '<canvas id="dq-cov" role="img" aria-label="Records per month by dataset"></canvas>';
-        box.querySelector('#' + pn.id + ' .panel__table').innerHTML = U.tableHtml([{ key: 'month', label: 'Month' }]
-          .concat(covTables.map(t => ({ key: t.name, label: DATASET_NAMES[t.name], num: true }))), rows);
+        const covCols = [{ key: 'month', label: 'Month' }].concat(covTables.map(t => ({ key: t.name, label: DATASET_NAMES[t.name], num: true })));
+        box.querySelector('#' + pn.id + ' .panel__table').innerHTML = U.tableHtml(covCols, rows);
+        setPanelData(box.querySelector('#' + pn.id), 'Records per month', covCols, rows);
         C.bar(b.querySelector('canvas'), {
           labels: rows.map(r => r.month), unit: 'records', valueTitle: 'Records',
           series: covTables.map((t, i) => ({ name: DATASET_NAMES[t.name], values: rows.map(r => r[t.name]), color: [C.COLORS.purple, '#B9AEB7', '#5A47B5'][i] }))
