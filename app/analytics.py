@@ -210,7 +210,7 @@ def meta():
         "table_date_ranges": ranges,
         "date_fields": {
             "sourcing": "date",
-            "processing": None,
+            "processing": "date_processed",
             "distributions": "date_blood_ordered",
             "transfusions": "date_blood_first_ordered",
         },
@@ -745,7 +745,7 @@ def quality():
             )
 
             coverage = {
-                "field": {"sourcing": "date", "distributions": "date_blood_ordered", "transfusions": "date_blood_first_ordered"}[table],
+                "field": {"sourcing": "date", "processing": "date_processed", "distributions": "date_blood_ordered", "transfusions": "date_blood_first_ordered"}[table],
                 "min": row["lo"],
                 "max": row["hi"],
                 "span_days": span,
@@ -806,9 +806,9 @@ def quality():
         _check("processing", "discarded units yield no components",
                scalar(f"SELECT COUNT(*) FROM processing WHERE is_discarded = 'Yes' AND ({q('prbc_(units)')} + {q('ffp_(units)')} + {q('platelets_(units)')} + {q('cryoprecipitate_(units)')}) > 0"),
                n_proc, "A discarded donation should not produce components.", "fail"),
-        _check("processing", "rows linkable to a date",
-               n_proc, n_proc,
-               "processing has no date column, so it cannot be trended, date-filtered or forecast.", "fail"),
+        _check("processing", "date_processed present",
+               scalar("SELECT COUNT(*) FROM processing WHERE date_processed IS NULL"),
+               n_proc, "Undated units cannot be trended or date-filtered.", "fail"),
     ]
 
     for t in tables:
@@ -820,7 +820,7 @@ def quality():
 
     schema_gaps = [
         {"table": "sourcing", "missing": "facility / blood-drive site / drive ID", "impact": "Blood-drive activity cannot be attributed to a drive or site."},
-        {"table": "processing", "missing": "date, donation ID, storage location, temperature", "impact": "No trend, no link to sourcing, no storage/cold-chain view."},
+        {"table": "processing", "missing": "donation ID, storage location, temperature", "impact": "No link to sourcing, no storage/cold-chain view."},
         {"table": "distributions", "missing": "blood group, order ID", "impact": "Distribution cannot be split by blood group or linked to transfusions."},
         {"table": "transfusions", "missing": "facility / ward", "impact": "Demand cannot be split by facility (patient_id prefix suggests MTRH only)."},
     ]

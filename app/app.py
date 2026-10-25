@@ -5,9 +5,11 @@ from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 import analytics
+import auth
 import blood_drives
 import explore
 import contact
+import inventory
 import site_content
 from db import DB_PATH, query
 from filters import TABLES, build_filters, read_filters, support_matrix
@@ -19,6 +21,13 @@ app = Flask(__name__)
 API_BASE = os.environ.get("UHAI_API_BASE", "")          # "" = same origin as the page
 DATA_SOURCE = os.environ.get("UHAI_DATA_SOURCE", "api")  # "api" or "mock"
 MAX_ROWS = int(os.environ.get("UHAI_MAX_ROWS", "1000"))
+
+# Login: /dashboard, /admin and the data API need an account (see auth.py)
+auth.init_app(app)
+
+# Inventory: stock by item, brand and source, under /api/inventory (login required)
+inventory.init()
+app.register_blueprint(inventory.bp)
 
 
 # ==================================================

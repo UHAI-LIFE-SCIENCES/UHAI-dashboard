@@ -55,10 +55,20 @@ window.UhaiCharts = (function () {
 
   function ready() { return typeof window.Chart !== 'undefined'; }
 
+  // Fixed decimals per unit, so the same measure always reads the same way (4.0%, not 4%)
+  const FIXED_DIGITS = { '%': 1, litres: 1, 'g/dL': 2, days: 2 };
+
   function fmt(v, unit) {
     if (v === null || v === undefined || Number.isNaN(v)) return '—';
-    const digits = unit === 'g/dL' || unit === 'days' ? 2 : unit === '%' || unit === 'litres' ? 1 : (Number.isInteger(v) ? 0 : 1);
-    const s = Number(v).toLocaleString('en-GB', { maximumFractionDigits: digits });
+    const fixed = FIXED_DIGITS[unit];
+    const digits = fixed !== undefined ? fixed : (Number.isInteger(v) ? 0 : 1);
+    const s = Number(v).toLocaleString('en-GB', { minimumFractionDigits: fixed !== undefined ? fixed : 0, maximumFractionDigits: digits });
+    return unit === '%' ? s + '%' : s;
+  }
+
+  // Axis ticks: no padded decimals (10%, not 10.0%)
+  function tick(v, unit) {
+    const s = Number(v).toLocaleString('en-GB', { maximumFractionDigits: 2 });
     return unit === '%' ? s + '%' : s;
   }
 
@@ -201,7 +211,7 @@ window.UhaiCharts = (function () {
     return Object.assign({
       grid: { color: COLORS.grid, drawTicks: false },
       border: { display: false },
-      ticks: { padding: 8, color: COLORS.muted, font: { size: 12.5 }, callback: v => fmt(v, unit) },
+      ticks: { padding: 8, color: COLORS.muted, font: { size: 12.5 }, callback: v => tick(v, unit) },
       title: title ? { display: true, text: title, color: COLORS.muted, font: { size: 12.5, weight: '600' } } : undefined
     }, extra || {});
   }
@@ -337,6 +347,7 @@ window.UhaiCharts = (function () {
     });
 
     const valueAxis = axis(spec.valueTitle, spec.unit, { beginAtZero: spec.beginAtZero !== false });
+    if (spec.integer) valueAxis.ticks.precision = 0;   // counts: no 0.5 ticks
     const catAxis = categoryAxis(spec.categoryTitle, horizontal ? { ticks: { color: COLORS.ink, font: { size: 12.5 }, autoSkip: false } } : {});
 
     return draw(canvas, {
@@ -527,12 +538,50 @@ window.UhaiCharts = (function () {
     });
   }
 
-  /** bar(canvas, { labels, series: [{ name, values, color? }], unit, horizontal }) — simple bars for secondary pages */
+  /** bar(canvas, { labels, series: [{ name, values, color? }], unit, horizontal, integer }) — simple bars for secondary pages */
   function bar(canvas, opts) {
     return render(canvas, {
-      type: 'bar', categories: opts.labels, unit: opts.unit, horizontal: opts.horizontal,
+      type: 'bar', categories: opts.labels, unit: opts.unit, horizontal: opts.horizontal, integer: opts.integer,
       valueTitle: opts.valueTitle, categoryTitle: opts.categoryTitle, beginAtZero: true,
       series: opts.series.map(s => ({ label: s.name, values: s.values, color: s.color, unit: opts.unit }))
+    });
+  }
+
+  /**
+   * barLine(canvas, { labels, bars: { name, values, unit, title }, line: { name, values, unit, title } })
+   * Bars on the left axis with a line on a second (right) axis, e.g. units and a rate.
+   */
+  function barLine(canvas, opts) {
+    const b = opts.bars, l = opts.line;
+    return draw(canvas, {
+      type: 'bar',
+      data: {
+        labels: opts.labels,
+        // `order` draws the line over the bars; legend and tooltip keep this listed order
+        datasets: [
+          {
+            label: b.name, data: b.values, yAxisID: 'y', order: 1, backgroundColor: COLORS.purple,
+            borderRadius: 4, borderSkipped: 'start', maxBarThickness: 44, categoryPercentage: 0.78, barPercentage: 0.9
+          },
+          {
+            type: 'line', label: l.name, data: l.values, yAxisID: 'y1', order: 0,
+            borderColor: COLORS.pink, backgroundColor: COLORS.pink, borderWidth: 2.5, tension: 0.25,
+            pointRadius: 4, pointHoverRadius: 7, pointBorderColor: COLORS.surface, pointBorderWidth: 2
+          }
+        ]
+      },
+      options: {
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: categoryAxis(opts.categoryTitle),
+          y: axis(b.title, b.unit, { beginAtZero: true, position: 'left' }),
+          y1: axis(l.title, l.unit, { beginAtZero: true, position: 'right', grid: { display: false } })
+        },
+        plugins: {
+          legend: { position: 'top', align: 'end', labels: { sort: (x, y) => x.datasetIndex - y.datasetIndex } },
+          tooltip: { itemSort: (x, y) => x.datasetIndex - y.datasetIndex, callbacks: { label: c => ` ${c.dataset.label}: ${withUnit(c.parsed.y, c.dataset.yAxisID === 'y1' ? l.unit : b.unit)}` } }
+        }
+      }
     });
   }
 
@@ -546,5 +595,5 @@ window.UhaiCharts = (function () {
 
   applyDefaults();
 
-  return { render, line, bar, stacked, gauge, funnel, heatmapHtml, destroy, destroyAll, colorFor, alpha, fmt, withUnit, ready, COLORS, CATEGORICAL, reduceMotion };
+  return { render, line, bar, barLine, stacked, gauge, funnel, heatmapHtml, destroy, destroyAll, colorFor, alpha, fmt, withUnit, ready, COLORS, CATEGORICAL, reduceMotion };
 })();

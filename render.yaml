@@ -15,6 +15,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      # Signs login sessions. Render creates a random value once; the app will not start without it.
+      - key: SECRET_KEY
+        generateValue: true
+      # Neon PostgreSQL connection string (users and login attempts). Enter it in the Render dashboard.
+      - key: DATABASE_URL
+        sync: false
       - key: UHAI_CONTACT_DB
         value: /var/data/contact_messages.db
       - key: UHAI_RAW_API_KEY

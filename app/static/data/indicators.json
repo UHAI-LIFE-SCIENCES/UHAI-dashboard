@@ -32,6 +32,14 @@
       }
     },
     "processing": {
+      "month": {
+        "label": "Month",
+        "time": "month"
+      },
+      "week": {
+        "label": "Week",
+        "time": "week"
+      },
       "blood_group": {
         "label": "Blood group"
       },
@@ -134,7 +142,7 @@
     "volume_donated": {
       "section": "sourcing",
       "table": "sourcing",
-      "label": "Volume of blood donated",
+      "label": "Volume donated",
       "unit": "litres",
       "axis": "Litres",
       "description": "Total blood donated, in litres.",
@@ -160,7 +168,7 @@
       "unit": "%",
       "axis": "% of donations",
       "ratio": true,
-      "description": "Share of donations from voluntary donors rather than family or replacement donors.",
+      "description": "Share of donations from voluntary donors.",
       "measures": [
         {
           "key": "share",
@@ -180,10 +188,10 @@
     "units_received": {
       "section": "processing",
       "table": "processing",
-      "label": "Donated units received for processing",
+      "label": "Units received",
       "unit": "units",
       "axis": "Units",
-      "description": "Donated units received for testing and processing. These records are not dated.",
+      "description": "Donated units received for testing and processing.",
       "measures": [
         {
           "key": "units",
@@ -191,6 +199,8 @@
         }
       ],
       "dims": [
+        "month",
+        "week",
         "channel",
         "blood_group",
         "screening",
@@ -201,10 +211,10 @@
     "components": {
       "section": "processing",
       "table": "processing",
-      "label": "Blood components produced",
+      "label": "Components produced",
       "unit": "components",
       "axis": "Components",
-      "description": "Red cells, plasma, platelets and cryoprecipitate produced. One donation can give several components.",
+      "description": "Red cells, plasma, platelets and cryo made from donations.",
       "measures": [
         {
           "key": "components",
@@ -213,6 +223,8 @@
       ],
       "dims": [
         "component",
+        "month",
+        "week",
         "blood_group",
         "channel"
       ],
@@ -221,11 +233,11 @@
     "reactive_share": {
       "section": "processing",
       "table": "processing",
-      "label": "Reactive TTI screening results (share)",
+      "label": "Reactive screens (share)",
       "unit": "%",
       "axis": "% of units",
       "ratio": true,
-      "description": "Share of units with a reactive infection screen. A reactive screen is not a confirmed infection.",
+      "description": "Share of units with a reactive screen (not a confirmed infection).",
       "measures": [
         {
           "key": "share",
@@ -233,6 +245,8 @@
         }
       ],
       "dims": [
+        "month",
+        "week",
         "channel",
         "blood_group"
       ],
@@ -253,6 +267,8 @@
         }
       ],
       "dims": [
+        "month",
+        "week",
         "channel",
         "blood_group"
       ],
@@ -261,7 +277,7 @@
     "units_distributed": {
       "section": "distribution",
       "table": "distributions",
-      "label": "Units distributed to hospitals",
+      "label": "Units distributed",
       "unit": "units",
       "axis": "Units",
       "description": "Units of blood sent to hospitals.",
@@ -286,7 +302,7 @@
       "label": "Distribution orders",
       "unit": "orders",
       "axis": "Orders",
-      "description": "Number of hospital orders. One order can include several units.",
+      "description": "Hospital orders; one order can include several units.",
       "measures": [
         {
           "key": "orders",
@@ -328,11 +344,11 @@
     "facility_returns": {
       "section": "distribution",
       "table": "distributions",
-      "label": "Units received vs share returned unused, by hospital",
+      "label": "Units received vs returns, by hospital",
       "kind": "scatter",
       "unit": "",
       "axis": "",
-      "description": "Each point is one hospital: units received against the share of orders returned unused.",
+      "description": "One point per hospital: units received and share returned unused.",
       "measures": [
         {
           "key": "units",
@@ -382,7 +398,7 @@
       "label": "Units requested and units given",
       "unit": "units",
       "axis": "Units",
-      "description": "Units requested for patients compared with units given. The gap is unmet need.",
+      "description": "Units requested and given; the gap is unmet need.",
       "measures": [
         {
           "key": "requested",
@@ -453,11 +469,11 @@
     "reason_hb_fulfilment": {
       "section": "transfusions",
       "table": "transfusions",
-      "label": "Mean haemoglobin vs fulfilment rate, by reason for transfusion",
+      "label": "Haemoglobin vs fulfilment, by reason",
       "kind": "scatter",
       "unit": "",
       "axis": "",
-      "description": "Each point is one reason for transfusion: average Hb against the fulfilment rate.",
+      "description": "One point per reason: average Hb at request and fulfilment rate.",
       "measures": [
         {
           "key": "hb",

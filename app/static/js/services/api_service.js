@@ -45,6 +45,12 @@ window.UhaiApiService = (function () {
     let body = null;
     try { body = await response.json(); } catch (e) { /* non-JSON error page */ }
 
+    // Logged out (or the session timed out): go to the login page, then come back here.
+    if (response.status === 401) {
+      window.location.assign('/login?next=' + encodeURIComponent(window.location.pathname + window.location.hash));
+      throw new Error('Please log in.');
+    }
+
     if (!response.ok) {
       throw new Error((body && body.error) || ('HTTP ' + response.status + ' on ' + path));
     }

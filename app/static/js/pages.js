@@ -13,18 +13,21 @@ window.UhaiPages = (function () {
   const F = window.UhaiForecast;
   const n0 = v => U.num(v, 0);
   const n1 = v => U.num(v, 1);
-  const pct = v => v === null || v === undefined ? '—' : U.num(v, 1) + '%';
+  const pct = v => C.fmt(v, '%');
   let uid = 0;
 
   // ------------------------------------------------------------------
   // Shared building blocks
   // ------------------------------------------------------------------
+  /** The selected period, shown above a page's summary cards */
+  const periodLabel = f => `${U.dateLabel(f.from)} – ${U.dateLabel(f.to)}`;
+
   async function refreshStats(ctx, statsFn) {
     const box = ctx.el.querySelector('[data-stats]');
     box.classList.add('is-loading');
     try {
       const d = await ctx.service.dashboard(ctx.filters);
-      box.innerHTML = U.statRow(statsFn(d));
+      box.innerHTML = U.statRow(statsFn(d), { period: periodLabel(ctx.filters) });
       return d;
     } catch (err) {
       box.innerHTML = U.state('error', 'Summary figures could not be loaded.');
@@ -100,7 +103,7 @@ window.UhaiPages = (function () {
     body.querySelector('[data-pe-reset]').addEventListener('click', ctx.onResetFilters);
   }
 
-  const periodLabel = (d, c) => d.time === 'month' ? U.dateLabel(c) : d.time === 'week' ? 'w/c ' + U.dateLabel(c) : c;
+  const timeLabel = (d, c) => d.time === 'month' ? U.dateLabel(c) : d.time === 'week' ? 'w/c ' + U.dateLabel(c) : c;
 
   /** Stacked bar or heatmap from a two-way breakdown */
   function crossPanel(ctx, cfg) {
@@ -118,7 +121,7 @@ window.UhaiPages = (function () {
           body.classList.remove('is-loading');
           const flat = d.values.flat();
           if (!d.rows.length || flat.every(v => !v)) { panelEmpty(body, ctx); root.querySelector('.panel__table').innerHTML = ''; setPanelData(root, cfg.title, [], []); return; }
-          const rowNames = d.rows.map(r => periodLabel(d, r));
+          const rowNames = d.rows.map(r => timeLabel(d, r));
           const colFmt = c => d.by2 === 'month' ? U.dateLabel(c) : c;
           const cols = [{ key: 'r', label: d.by_label }].concat(d.cols.map((c, j) => ({ key: 'c' + j, label: colFmt(c), num: true, unit: d.unit })));
           const rows = rowNames.map((r, i) => Object.assign({ r }, ...d.cols.map((c, j) => ({ ['c' + j]: d.values[i][j] }))));
@@ -195,17 +198,21 @@ window.UhaiPages = (function () {
   // ==================================================================
   // Overview is built from the reported figures (services/reported_figures.js).
   // They are fixed yearly reports, so the date and category filters do not apply here.
-  const pct0 = v => Math.round(v) + '%';
 
-  /** Chart panel with its table below; chart and table read the same rows */
+  /** Chart panel with a Graphic / Table toggle; chart and table read the same rows */
   function reportedPanel(root, cfg) {
     const el = root.querySelector('#' + cfg.pn.id);
     const body = el.querySelector('.panel__body');
     const rows = cfg.rows.concat(cfg.total ? [cfg.total] : []);
     el.querySelector('.panel__table').innerHTML = U.tableHtml(cfg.cols, rows, { totalLast: !!cfg.total, caption: cfg.title });
     setPanelData(el, cfg.title, cfg.cols, rows);
-    if (!C.ready()) { body.innerHTML = U.state('error', '<b>The chart could not load.</b> The table below lists the same figures.'); return; }
+    if (!C.ready()) {
+      body.innerHTML = U.state('error', '<b>The chart could not load.</b> The table lists the same figures.');
+      el.querySelector('.panel__table').hidden = false;
+      return;
+    }
     body.innerHTML = `<canvas id="${cfg.pn.id}-c" role="img" aria-label="${U.esc(cfg.title)}"></canvas>`;
+    if (cfg.draw) { cfg.draw(body.querySelector('canvas')); return; }
     C.bar(body.querySelector('canvas'), {
       labels: cfg.rows.map(cfg.label), unit: 'units', valueTitle: 'Units',
       series: cfg.series.map((s, i) => ({ name: s.name, values: cfg.rows.map(r => r[s.key]), color: cfg.series.length > 1 ? C.CATEGORICAL[i] : C.COLORS.purple }))
@@ -218,29 +225,40 @@ window.UhaiPages = (function () {
     mount(ctx) {
       const R = window.UhaiReported;
       const T = R.target, QT = R.quarterlyTotals;
-      const discardRate = 100 * QT.discards / QT.collection;
       const shortMonth = m => m.replace(/^(\w{3})\w*/, '$1');
       const withTotal = (label, totals, key) => Object.assign({ [key]: label }, totals);
 
-      const pMonthly = panel('Whole blood collections', 'RBTC Eldoret, July 2025 – June 2026', { height: 320, tableBelow: true });
-      const pQuarter = panel('Collection, grouping, screening and components', 'RBTC Eldoret, FY 2024/25', { height: 340, tableBelow: true });
-      const pDiscard = panel('Discards', 'RBTC Eldoret, FY 2024/25', { height: 340, tableBelow: true });
-      const pReport = panel('Quarterly report', 'RBTC Eldoret, FY 2025/26', { height: 320, tableBelow: true });
+      const pMonthly = panel('Whole blood collections', 'RBTC Eldoret, July 2025 – June 2026', { height: 320, table: true });
+      const pQuarter = panel('Collection, grouping, screening and components', 'RBTC Eldoret, FY 2024/25', { height: 340, table: true });
+      const pDiscard = panel('Discards', 'RBTC Eldoret, FY 2024/25', { height: 340, table: true });
+      const pReport = panel('Quarterly report', 'RBTC Eldoret, FY 2025/26', { height: 320, table: true });
 
+      // Cards that cover the same period sit together under one period label
       ctx.el.innerHTML = `<div class="ov">
         ${U.sectionHead({ title: 'Overview', lead: 'Blood collection at RBTC Eldoret, and progress towards the national target.' })}
-        ${U.statRow([
+        ${U.statGroups([
           {
-            label: 'Achievement of target (projected) donations', value: pct0(T.achievementPct),
-            note: `${n0(T.collected)} of ${n0(T.need)} units · ${T.year}`,
-            bar: { value: T.achievementPct, label: 'Achievement of target (projected) donations' }
+            period: 'FY 2025/26 · July 2025 – June 2026 · RBTC Eldoret', span: 2,
+            cards: [{ label: 'Whole blood collected', value: n0(R.monthlyTotal), unit: 'units', note: '12 months, July to June' }]
           },
-          { label: 'Whole blood collected', value: n0(R.monthlyTotal), unit: 'units', note: 'July 2025 – June 2026' },
-          { label: 'Total collected', value: n0(QT.collection), unit: 'units', note: 'FY 2024/25, Q1–Q4' },
-          { label: 'Total screened', value: n0(QT.screening), unit: 'units', note: 'FY 2024/25, Q1–Q4' },
-          { label: 'Total discarded', value: n0(QT.discards), unit: 'units', note: 'FY 2024/25, Q1–Q4', alert: true },
-          { label: 'Discard rate', value: pct0(discardRate), note: `${n0(QT.discards)} of ${n0(QT.collection)} units collected`, alert: true }
-        ], { cols: 3 })}
+          {
+            period: `${T.year} · National`, span: 2,
+            cards: [{
+              label: 'Achievement of target (projected) donations', value: pct(T.achievementPct),
+              note: `${n0(T.collected)} of ${n0(T.need)} units`,
+              bar: { value: T.achievementPct, label: 'Achievement of target (projected) donations' }
+            }]
+          },
+          {
+            period: 'FY 2024/25 · Q1–Q4 · RBTC Eldoret', span: 4,
+            cards: [
+              { label: 'Total collected', value: n0(QT.collection), unit: 'units' },
+              { label: 'Total screened', value: n0(QT.screening), unit: 'units' },
+              { label: 'Total discarded', value: n0(QT.discards), unit: 'units', alert: true },
+              { label: 'Discard rate', value: pct(QT.discardPct), note: `${n0(QT.discards)} of ${n0(QT.collection)} units collected`, alert: true }
+            ]
+          }
+        ])}
         ${pMonthly.html}
         <h2 class="ov__title">Eldoret quarterly collections, screening and discards</h2>
         <div class="grid-main">
@@ -272,9 +290,14 @@ window.UhaiPages = (function () {
 
       reportedPanel(ctx.el, {
         pn: pDiscard, title: 'Eldoret quarterly discards FY 2024-25', rows: R.quarterly, label: r => r.quarter,
-        series: [{ name: 'Discards', key: 'discards' }],
-        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'discards', label: 'Discards', num: true }],
-        total: { quarter: 'Total', discards: QT.discards }
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'collection', label: 'Collection', num: true },
+          { key: 'discards', label: 'Discards', num: true }, { key: 'discardPct', label: '% of collection', num: true, unit: '%' }],
+        total: { quarter: 'Total', collection: QT.collection, discards: QT.discards, discardPct: QT.discardPct },
+        draw: canvas => C.barLine(canvas, {
+          labels: R.quarterly.map(r => r.quarter),
+          bars: { name: 'Discards', values: R.quarterly.map(r => r.discards), unit: 'units', title: 'Units' },
+          line: { name: '% of collection', values: R.quarterly.map(r => r.discardPct), unit: '%', title: '% of collection' }
+        })
       });
 
       reportedPanel(ctx.el, {
@@ -317,8 +340,7 @@ window.UhaiPages = (function () {
   const processing = sectionPage({
     title: 'Processing',
     lead: 'Testing and preparing donated blood: screening results, discards and the components produced.',
-    filters: ['blood_group', 'channel'],
-    noDateNote: 'Not recorded for processing',
+    filters: ['date', 'blood_group', 'channel'],
     extrasFirst: true,
     indicators: ['units_received', 'components', 'reactive_share', 'discard_share'],
     stats: d => {
@@ -449,7 +471,7 @@ window.UhaiPages = (function () {
                 .bindPopup(`<p class="pop-title">${U.esc(h.label)}</p><p class="pop-sub">${U.esc(loc.county)} County</p>
                   <table class="pop-table">
                     <tr><th>Units requested</th><td>${n0(h.value)}</td></tr>
-                    <tr><th>Units fulfilled</th><td>${n0(h.delivered)} <span>(${h.value ? Math.round(100 * h.delivered / h.value) : 0}%)</span></td></tr>
+                    <tr><th>Units fulfilled</th><td>${n0(h.delivered)} <span>(${pct(h.value ? 100 * h.delivered / h.value : 0)})</span></td></tr>
                     <tr><th>Transfused</th><td>${n0(h.transfused)}</td></tr>
                     <tr><th>Returned unused</th><td>${n0(h.returned)}</td></tr>
                     <tr><th>Orders</th><td>${n0(h.orders)}</td></tr>
@@ -529,7 +551,7 @@ window.UhaiPages = (function () {
             { label: 'Units sent to hospitals', value: n0(k) },
             { label: 'Counties served', value: n0(counties.size) },
             { label: 'Donations', value: n0(geo.donor_areas.reduce((a, x) => a + x.value, 0)), note: 'Across Uasin Gishu sub-counties' }
-          ]);
+          ], { period: periodLabel(ctx.filters) });
           if (!window.L) { box.innerHTML = U.state('error', 'The map could not load. The table below lists the same figures.'); return; }
           if (!map) {
             map = window.L.map(box, { scrollWheelZoom: false, zoomControl: true }).setView([0.5143, 35.2698], 10);   // Eldoret
@@ -623,11 +645,11 @@ window.UhaiPages = (function () {
         };
         return `
           ${U.statRow([
-            { label: 'Projected donations', value: n0(rows.reduce((a, r) => a + r.don, 0)), note: `${rows[0].month} – ${rows[rows.length - 1].month}` },
-            { label: 'Projected units requested', value: n0(rows.reduce((a, r) => a + r.req, 0)), note: `${rows[0].month} – ${rows[rows.length - 1].month}` },
+            { label: 'Projected donations', value: n0(rows.reduce((a, r) => a + r.don, 0)) },
+            { label: 'Projected units requested', value: n0(rows.reduce((a, r) => a + r.req, 0)) },
             { label: 'Projected gap', value: (gap > 0 ? '+' : '') + n0(gap), note: gap < 0 ? 'Demand above donations' : 'Donations above demand', alert: gap < 0 },
-            { label: 'History used', value: `${dH.values.length}`, unit: 'months' }
-          ])}
+            { label: 'History used', value: `${dH.values.length}`, unit: 'months', note: 'Recorded months the projection is based on' }
+          ], { period: `Projection · ${rows[0].month} – ${rows[rows.length - 1].month}` })}
           ${pn.html}`;
       }
       render();
@@ -661,7 +683,7 @@ window.UhaiPages = (function () {
           <section class="panel">
             <header class="panel__head"><div><h2 class="panel__title">Good to know</h2></div></header>
             <ul class="facts">
-              <li>Processing records are not dated, so processing figures do not change with the period filter.</li>
+              <li>Processing records are dated by processing day but carry no donation ID, so a unit cannot be traced back to its donor.</li>
               <li>Hospital deliveries do not record blood group, and patient requests do not record the hospital.</li>
               <li>Donors cannot be followed over time, so repeat donation is not measured.</li>
               <li>Packed red cells in Sourcing and donor areas on the Map are estimated, as those details are not recorded per donation.</li>

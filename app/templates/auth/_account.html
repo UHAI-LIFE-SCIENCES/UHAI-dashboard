@@ -1,0 +1,16 @@
+{# Logged-in person, Users (admins) and Log out, for the dashboard header #}
+{% if current_user %}
+<div class="dh__account">
+    <span class="dh__user" title="{{ current_user.email }}">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 17c1.2-3 3.6-4.5 6.5-4.5s5.3 1.5 6.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        {{ current_user.name }}
+    </span>
+    {% if current_user.role == 'admin' %}
+    <a class="dh__link" href="{{ url_for('auth.users') }}">Users</a>
+    {% endif %}
+    <form class="dh__logout" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="dh__link">Log out</button>
+    </form>
+</div>
+{% endif %}

@@ -17,6 +17,17 @@ How to run:
 - python app/app.py
 - Open the address Flask prints in the terminal (port 5000 by default).
 
+Logins:
+
+- The website is public. The dashboard (/dashboard) and its data (/api/...) need a login; /api/contact and /api/ping stay public.
+- There is no sign-up. Create the first admin in a terminal, from the project folder:
+  flask --app app/app.py create-admin
+  It asks for a name, email and password (the password is not shown while typing).
+- Admins add users, reset passwords and make users inactive at /admin/users (the "Users" link in the dashboard header).
+- Accounts are stored in uhai_app.db locally (never commit it), or in Neon PostgreSQL when DATABASE_URL is set.
+- Live settings (Render, Environment): SECRET_KEY (Render generates it; the app will not start without it) and DATABASE_URL (the Neon connection string). Never put either in the code or in git.
+- Logins end after 8 hours without activity. After 5 wrong passwords for one email, that email is locked for 15 minutes.
+
 Editing content:
 
 - Upcoming blood drives: app/blood_drives.py (past dates are hidden automatically).

@@ -13,6 +13,7 @@
     <meta name="twitter:title" content="Uhai Blood Insights: {{ tagline }}">
     <meta name="twitter:description" content="{{ tagline }}. Blood supply data for Eldoret, Kenya, from UHAI Life Sciences.">
     <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +53,7 @@
                     <span class="dh__subtitle">{{ tagline }}</span>
                 </span>
             </a>
+            {% include "auth/_account.html" %}
             <a class="back-btn" href="{{ url_for('site_home') }}" aria-label="Back to Uhai website">
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4M9 5l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span>Back to Uhai</span>
@@ -72,6 +74,7 @@
                     </button>
                     <ul class="dn__menu" id="more-menu" hidden>
                         <li><a href="#/forecast" data-route="forecast">Forecast <span class="tag">Prototype</span></a></li>
+                        <li><a href="#/inventory" data-route="inventory">Inventory</a></li>
                         <li><a href="#/about" data-route="about">About the data</a></li>
                     </ul>
                 </li>
@@ -99,6 +102,7 @@
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/explorer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/pages.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

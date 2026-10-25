@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users · Uhai Blood Insights</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/uhai-base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <header class="dh">
+        <div class="dh__top">
+            <a class="dh__brand" href="{{ url_for('dashboard_page') }}" aria-label="Uhai Blood Insights, dashboard">
+                <img src="{{ url_for('static', filename=logo) }}" alt="Uhai logo" width="40" height="53">
+                <span><span class="dh__title">Uhai Blood Insights</span></span>
+            </a>
+            {% include "auth/_account.html" %}
+            <a class="back-btn" href="{{ url_for('dashboard_page') }}">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4M9 5l-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Back to dashboard</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="view">
+        <header class="sh">
+            <div>
+                <h1 class="sh__title">Users</h1>
+                <p class="sh__lead">People who can log in to the dashboard. Only admins see this page.</p>
+            </div>
+        </header>
+
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        <p class="note {{ 'note--error' if category == 'error' else 'note--info' }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        {% endfor %}
+
+        <section class="panel acct-panel">
+            <header class="panel__head">
+                <div>
+                    <h2 class="panel__title">Add a user</h2>
+                    <p class="panel__sub">Give the person their password yourself. They can ask you to change it at any time.</p>
+                </div>
+            </header>
+            <form class="acct-form" method="post" action="{{ url_for('auth.add_user') }}" autocomplete="off">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="acct-field">Name
+                    <input class="acct-input" name="name" required maxlength="120">
+                </label>
+                <label class="acct-field">Email
+                    <input class="acct-input" name="email" type="email" required maxlength="200">
+                </label>
+                <label class="acct-field">Role
+                    <select class="field-select" name="role">
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin (can manage users)</option>
+                    </select>
+                </label>
+                <label class="acct-field">Password
+                    <input class="acct-input" name="password" type="password" required minlength="{{ min_password }}" autocomplete="new-password">
+                    <span class="acct-hint">At least {{ min_password }} characters.</span>
+                </label>
+                <div class="acct-actions"><button class="btn btn--primary btn--sm" type="submit">Add user</button></div>
+            </form>
+        </section>
+
+        <section class="panel acct-panel">
+            <header class="panel__head">
+                <div>
+                    <h2 class="panel__title">All users</h2>
+                    <p class="panel__sub">{{ users|length }} {{ 'account' if users|length == 1 else 'accounts' }}. Inactive people cannot log in.</p>
+                </div>
+            </header>
+            <div class="panel__table">
+                <div class="table-wrap">
+                    <table class="dtable">
+                        <caption class="sr-only">Users</caption>
+                        <thead>
+                            <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Status</th>
+                                <th scope="col">Last login</th><th scope="col">Added</th><th scope="col">New password</th><th scope="col"></th></tr>
+                        </thead>
+                        <tbody>
+                        {% for u in users %}
+                            <tr class="{{ '' if u.active else 'acct-off' }}">
+                                <td><b>{{ u.name }}</b>{% if current_user.id == u.id %} <span class="acct-you">(you)</span>{% endif %}<span class="acct-sub">{{ u.email }}</span></td>
+                                <td>{{ 'Admin' if u.role == 'admin' else 'Staff' }}</td>
+                                <td><span class="acct-badge acct-badge--{{ 'on' if u.active else 'off' }}">{{ 'Active' if u.active else 'Inactive' }}</span></td>
+                                <td>{{ u.last_login|kenya_time or 'Never' }}</td>
+                                <td>{{ u.created_at|kenya_time(date_only=true) }}</td>
+                                <td>
+                                    <form class="acct-inline" method="post" action="{{ url_for('auth.reset_password', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input class="acct-input acct-input--sm" name="password" type="password" minlength="{{ min_password }}"
+                                               autocomplete="new-password" aria-label="New password for {{ u.name }}" placeholder="New password" required>
+                                        <button class="btn btn--outline btn--sm" type="submit">Set</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    {% if current_user.id != u.id %}
+                                    <form method="post" action="{{ url_for('auth.set_active', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="active" value="{{ '0' if u.active else '1' }}">
+                                        <button class="link-btn" type="submit">{{ 'Make inactive' if u.active else 'Make active' }}</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        <p class="acct-foot">Times are East Africa Time. There is no public sign-up: only admins add users here.</p>
+    </main>
+</body>
+</html>

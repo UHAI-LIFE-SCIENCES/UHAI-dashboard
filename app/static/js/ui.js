@@ -12,9 +12,12 @@ window.UhaiUI = (function () {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  /** Thousands separators; with `digits`, always that many decimals (57.0, not 57) */
   function num(v, digits) {
     if (v === null || v === undefined || Number.isNaN(v)) return '—';
-    return Number(v).toLocaleString('en-GB', { maximumFractionDigits: digits === undefined ? 1 : digits });
+    return digits === undefined
+      ? Number(v).toLocaleString('en-GB', { maximumFractionDigits: 1 })
+      : Number(v).toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   }
 
   function dateLabel(iso) {
@@ -39,21 +42,44 @@ window.UhaiUI = (function () {
       </header>`;
   }
 
+  function kcard(s) {
+    return `
+      <div class="kcard ${s.alert ? 'kcard--alert' : ''}">
+        <p class="kcard__label">${esc(s.label)}</p>
+        <p class="kcard__value">${s.value}${s.unit ? `<span class="kcard__unit">${esc(s.unit)}</span>` : ''}</p>
+        ${s.bar ? `<div class="kcard__bar" role="progressbar" aria-label="${esc(s.bar.label)}" aria-valuemin="0" aria-valuemax="100"
+          aria-valuenow="${s.bar.value}" title="${esc(s.bar.label)}: ${s.bar.value}%"><span style="width:${Math.max(0, Math.min(100, s.bar.value))}%"></span></div>` : ''}
+        ${s.note ? `<p class="kcard__note">${s.note}</p>` : ''}
+      </div>`;
+  }
+
+  const periodTag = period => period ? `<p class="kperiod">${esc(period)}</p>` : '';
+
   /**
    * stats: [{ label, value, unit, note, alert, bar: { value, label } }] — a row of summary cards;
-   * alert = shortage/risk; bar = progress towards 100%. opts.cols = 3 for a three-column row.
+   * alert = shortage/risk; bar = progress towards 100%.
+   * opts.period labels the period every card in the row covers; opts.cols = 3 for a three-column row.
    */
   function statRow(stats, opts) {
     opts = opts || {};
     return `
-      <div class="kcards ${opts.cols === 3 ? 'kcards--3' : ''}">
-        ${stats.map(s => `
-          <div class="kcard ${s.alert ? 'kcard--alert' : ''}">
-            <p class="kcard__label">${esc(s.label)}</p>
-            <p class="kcard__value">${s.value}${s.unit ? `<span class="kcard__unit">${esc(s.unit)}</span>` : ''}</p>
-            ${s.bar ? `<div class="kcard__bar" role="progressbar" aria-label="${esc(s.bar.label)}" aria-valuemin="0" aria-valuemax="100"
-              aria-valuenow="${s.bar.value}" title="${esc(s.bar.label)}: ${s.bar.value}%"><span style="width:${Math.max(0, Math.min(100, s.bar.value))}%"></span></div>` : ''}
-            ${s.note ? `<p class="kcard__note">${s.note}</p>` : ''}
+      <div class="kblock">
+        ${periodTag(opts.period)}
+        <div class="kcards ${opts.cols === 3 ? 'kcards--3' : ''}">${stats.map(kcard).join('')}</div>
+      </div>`;
+  }
+
+  /**
+   * groups: [{ period, span, cards: [stat, ...] }] — cards that share a period sit together
+   * under one period label. span = columns (of 4) the group takes; defaults to its card count.
+   */
+  function statGroups(groups) {
+    return `
+      <div class="kgroups">
+        ${groups.map(g => `
+          <div class="kgroup ${(g.span || g.cards.length) >= 3 ? 'kgroup--wide' : ''}" style="--span:${g.span || g.cards.length}">
+            ${periodTag(g.period)}
+            <div class="kgroup__cards" style="--n:${g.cards.length}">${g.cards.map(kcard).join('')}</div>
           </div>`).join('')}
       </div>`;
   }
@@ -168,17 +194,19 @@ window.UhaiUI = (function () {
         <span>${esc(v)}</span></label>`).join('');
   }
 
+  // Compact field: the label sits inside the button ("Blood group: All"); hints open with the list.
   function dropdown(key, options, selected, hint) {
     const id = 'fp-' + key;
     return `
       <div class="fb__field" data-pop>
-        <span class="fb__label" id="${id}-label">${FILTER_LABELS[key]}${hint ? ` <span class="fb__hint">${esc(hint)}</span>` : ''}</span>
         <button type="button" class="select ${selected.length ? 'is-active' : ''}" aria-haspopup="true" aria-expanded="false"
           aria-controls="${id}" aria-labelledby="${id}-label ${id}-value" data-pop-btn>
+          <span class="select__key" id="${id}-label">${FILTER_LABELS[key]}:</span>
           <span id="${id}-value">${esc(summary(selected, options.length))}</span>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
         <div class="pop" id="${id}" role="group" aria-labelledby="${id}-label" hidden data-pop-panel>
+          ${hint ? `<p class="pop__hint">Applies to ${esc(hint)}</p>` : ''}
           <div class="pop__list">${checkboxes(key, options, selected)}</div>
           <div class="pop__foot"><button type="button" class="link-btn" data-clear="${key}">Clear</button></div>
         </div>
@@ -211,7 +239,7 @@ window.UhaiUI = (function () {
         <div class="fb__row" id="fb-row">
           ${o.keys.indexOf('date') > -1 ? `
             <div class="fb__field fb__field--date">
-              <span class="fb__label">Period</span>
+              <span class="fb__label" aria-hidden="true">Period</span>
               <div class="fb__dates">
                 <input type="date" aria-label="From date" data-date="from" value="${esc(f.from || '')}" min="${m.date_range.min}" max="${m.date_range.max}">
                 <span aria-hidden="true">–</span>
@@ -221,17 +249,16 @@ window.UhaiUI = (function () {
           ${main.map(k => dropdown(k, m.options[k] || [], f[k] || [], hints[k])).join('')}
           ${more.length ? `
             <div class="fb__field" data-pop>
-              <span class="fb__label" id="fp-more-label">More filters</span>
-              <button type="button" class="select ${moreCount ? 'is-active' : ''}" aria-haspopup="true" aria-expanded="false" aria-controls="fp-more" aria-labelledby="fp-more-label" data-pop-btn>
-                <span>${moreCount ? moreCount + ' selected' : 'None'}</span>
+              <button type="button" class="select select--more ${moreCount ? 'is-active' : ''}" aria-haspopup="true" aria-expanded="false" aria-controls="fp-more" data-pop-btn>
+                <span id="fp-more-label">More filters${moreCount ? ` <span class="count">${moreCount}</span>` : ''}</span>
                 <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
               </button>
-              <div class="pop pop--wide" id="fp-more" hidden data-pop-panel>
-                ${more.map(k => `<fieldset class="pop__group"><legend>${FILTER_LABELS[k]}${hints[k] ? ` <span class="fb__hint">${esc(hints[k])}</span>` : ''}</legend>
+              <div class="pop pop--wide" id="fp-more" role="group" aria-labelledby="fp-more-label" hidden data-pop-panel>
+                ${more.map(k => `<fieldset class="pop__group"><legend>${FILTER_LABELS[k]}${hints[k] ? ` <span class="fb__hint">(${esc(hints[k])})</span>` : ''}</legend>
                   ${checkboxes(k, m.options[k] || [], f[k] || [])}</fieldset>`).join('')}
               </div>
             </div>` : ''}
-          <button type="button" class="btn btn--ghost btn--sm fb__reset" data-reset ${activeCount ? '' : 'disabled'}>Reset filters</button>
+          <button type="button" class="link-btn fb__reset" data-reset ${activeCount ? '' : 'disabled'}>Reset filters</button>
         </div>
       </div>
       ${chips.length ? `
@@ -301,7 +328,7 @@ window.UhaiUI = (function () {
   }
 
   return {
-    esc, num, fmt, dateLabel, sectionHead, statRow, note, state, tableHtml, downloadCsv, card, bindCards,
+    esc, num, fmt, dateLabel, sectionHead, statRow, statGroups, note, state, tableHtml, downloadCsv, card, bindCards,
     filterBar, reopen, defaultFilters, closePopover, FILTER_LABELS
   };
 })();

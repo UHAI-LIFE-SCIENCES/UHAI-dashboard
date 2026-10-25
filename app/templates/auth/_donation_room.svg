@@ -1,0 +1,141 @@
+<svg class="room" viewBox="40 0 1015 900" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
+    <clipPath id="room-frame"><rect x="560" y="40" width="420" height="250"/></clipPath>
+  </defs>
+  <g stroke="#241F24" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+
+    <!-- Framed picture: a red sun over the Eldoret hills -->
+    <g clip-path="url(#room-frame)">
+      <rect x="560" y="40" width="420" height="250" fill="#F4ECDD" stroke="none"/>
+      <circle cx="668" cy="150" r="56" fill="#C8432E"/>
+      <path d="M540 290 V226 Q612 186 694 222 Q772 256 850 212 Q930 172 1010 204 V290 Z" fill="#9DAE86"/>
+      <path d="M540 290 V258 Q636 230 738 258 Q842 288 940 254 Q980 242 1010 246 V290 Z" fill="#6E4C70"/>
+      <circle cx="860" cy="380" r="270" fill="none" stroke-width="1" opacity=".45"/>
+      <circle cx="560" cy="-60" r="260" fill="none" stroke-width="1" opacity=".35"/>
+    </g>
+    <rect x="560" y="40" width="420" height="250" fill="none"/>
+
+    <!-- Floor and rug -->
+    <polygon points="400,560 2600,560 2600,1600 -762,1600" fill="#E8D4BF" stroke="none"/>
+    <polygon points="330,790 470,650 2600,650 2600,790" fill="#EBD3E3" stroke="none"/>
+
+    <!-- Potted palm -->
+    <polygon points="92,646 140,606 262,606 214,646" fill="#241F24" stroke="none"/>
+    <path d="M166 520 Q160 420 178 296" fill="none" stroke="#6B4A2E" stroke-width="7"/>
+    <path d="M172 520 Q196 448 150 380" fill="none" stroke="#6B4A2E" stroke-width="6"/>
+    <g transform="translate(178 296)" fill="#9DB79A">
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(-78)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(-50)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(-24)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(2)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(28)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(56)"/>
+      <path d="M0 0 Q12 -70 0 -128 Q-12 -70 0 0Z" transform="rotate(84)"/>
+      <path d="M0 0 Q10 -55 0 -100 Q-10 -55 0 0Z" transform="rotate(112)"/>
+      <path d="M0 0 Q10 -55 0 -100 Q-10 -55 0 0Z" transform="rotate(-106)"/>
+    </g>
+    <g transform="translate(150 380)" fill="#88A685">
+      <path d="M0 0 Q9 -48 0 -88 Q-9 -48 0 0Z" transform="rotate(-80)"/>
+      <path d="M0 0 Q9 -48 0 -88 Q-9 -48 0 0Z" transform="rotate(-48)"/>
+      <path d="M0 0 Q9 -48 0 -88 Q-9 -48 0 0Z" transform="rotate(-16)"/>
+      <path d="M0 0 Q9 -48 0 -88 Q-9 -48 0 0Z" transform="rotate(16)"/>
+      <path d="M0 0 Q9 -48 0 -88 Q-9 -48 0 0Z" transform="rotate(48)"/>
+      <path d="M0 0 Q8 -40 0 -72 Q-8 -40 0 0Z" transform="rotate(-108)"/>
+    </g>
+    <path d="M118 518 H222 Q232 566 206 608 H134 Q108 566 118 518 Z" fill="#EFE5F0"/>
+    <ellipse cx="170" cy="518" rx="52" ry="9" fill="#3B2A22"/>
+
+    <!-- Blood bank fridge with labelled bags -->
+    <polygon points="232,612 270,586 420,586 402,612" fill="#241F24" stroke="none"/>
+    <rect x="250" y="288" width="152" height="324" rx="6" fill="#F4F2F5"/>
+    <rect x="262" y="298" width="128" height="16" rx="3" fill="#880275"/>
+    <text x="326" y="310" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.5" fill="#fff" stroke="none">BLOOD BANK</text>
+    <rect x="262" y="322" width="128" height="250" rx="3" fill="#DCE6EA"/>
+    <g fill="none"><path d="M262 384 H390 M262 446 H390 M262 508 H390"/></g>
+    <g fill="#B3263A">
+      <rect x="272" y="350" width="22" height="30" rx="5"/><rect x="302" y="350" width="22" height="30" rx="5"/><rect x="332" y="350" width="22" height="30" rx="5"/><rect x="362" y="350" width="20" height="30" rx="5"/>
+      <rect x="272" y="412" width="22" height="30" rx="5"/><rect x="302" y="412" width="22" height="30" rx="5"/><rect x="332" y="412" width="22" height="30" rx="5"/>
+      <rect x="272" y="474" width="22" height="30" rx="5"/><rect x="302" y="474" width="22" height="30" rx="5"/><rect x="332" y="474" width="22" height="30" rx="5"/><rect x="362" y="474" width="20" height="30" rx="5"/>
+      <rect x="272" y="536" width="22" height="30" rx="5"/><rect x="302" y="536" width="22" height="30" rx="5"/>
+    </g>
+    <g fill="#fff" stroke="none">
+      <rect x="276" y="358" width="14" height="7"/><rect x="306" y="358" width="14" height="7"/><rect x="336" y="358" width="14" height="7"/><rect x="365" y="358" width="14" height="7"/>
+      <rect x="276" y="420" width="14" height="7"/><rect x="306" y="420" width="14" height="7"/><rect x="336" y="420" width="14" height="7"/>
+      <rect x="276" y="482" width="14" height="7"/><rect x="306" y="482" width="14" height="7"/><rect x="336" y="482" width="14" height="7"/><rect x="365" y="482" width="14" height="7"/>
+      <rect x="276" y="544" width="14" height="7"/><rect x="306" y="544" width="14" height="7"/>
+    </g>
+    <rect x="392" y="410" width="5" height="70" rx="2" fill="#241F24"/>
+    <rect x="258" y="612" width="14" height="8" fill="#241F24"/><rect x="380" y="612" width="14" height="8" fill="#241F24"/>
+
+    <!-- Side table with juice and biscuits -->
+    <polygon points="292,748 332,712 452,712 414,748" fill="#241F24" stroke="none"/>
+    <path d="M318 676 V744 M438 676 V744 M352 662 V720 M462 662 V720" fill="none" stroke="#7A5434" stroke-width="5"/>
+    <polygon points="300,676 336,646 476,646 444,676" fill="#F1EAF2"/>
+    <rect x="352" y="606" width="26" height="40" rx="2" fill="#E9852F"/>
+    <rect x="352" y="618" width="26" height="12" fill="#F8D7A6"/>
+    <path d="M370 606 L376 586 L384 584" fill="none" stroke-width="2.5"/>
+    <ellipse cx="420" cy="646" rx="30" ry="7" fill="#fff"/>
+    <ellipse cx="410" cy="638" rx="12" ry="5" fill="#D9A066"/>
+    <ellipse cx="428" cy="634" rx="12" ry="5" fill="#D9A066"/>
+    <ellipse cx="419" cy="628" rx="12" ry="5" fill="#E2B27A"/>
+
+    <!-- Mixer scale with a blood bag, and its stand -->
+    <polygon points="452,690 480,664 556,664 532,690" fill="#241F24" stroke="none"/>
+    <rect x="466" y="616" width="80" height="48" rx="7" fill="#D7D0DC"/>
+    <rect x="478" y="628" width="34" height="14" rx="2" fill="#241F24"/>
+    <text x="495" y="639" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700" fill="#A7E08A" stroke="none">450</text>
+    <circle cx="530" cy="635" r="5" fill="#880275"/>
+    <polygon points="462,608 552,600 554,610 464,618" fill="#BDB3C2"/>
+    <g transform="rotate(-5 506 590)">
+      <rect x="478" y="574" width="58" height="28" rx="9" fill="#B3263A"/>
+      <rect x="494" y="582" width="26" height="9" fill="#fff" stroke="none"/>
+    </g>
+
+    <!-- Donation chair -->
+    <polygon points="560,712 604,672 908,672 880,712" fill="#241F24" stroke="none"/>
+    <path d="M610 640 V690 M840 640 V690" fill="none" stroke-width="8"/>
+    <path d="M590 600 H812 Q826 600 826 614 V640 H590 Q578 640 578 628 V612 Q578 600 590 600 Z" fill="#5A2A55"/>
+    <path d="M540 566 L600 566 L600 600 L548 600 Q532 600 534 584 Z" fill="#5A2A55"/>
+    <polygon points="806,606 870,476 914,488 854,616" fill="#5A2A55"/>
+    <rect x="862" y="452" width="56" height="34" rx="14" fill="#6C3466" transform="rotate(14 890 469)"/>
+    <rect x="652" y="566" width="120" height="12" rx="6" fill="#6C3466"/>
+    <path d="M712 578 V600" fill="none" stroke-width="5"/>
+
+    <!-- Donor, reclining, giving blood -->
+    <path d="M746 576 L640 572 L560 568" fill="none" stroke="#241F24" stroke-width="38"/>
+    <path d="M746 576 L640 572 L560 568" fill="none" stroke="#4E6596" stroke-width="34"/>
+    <ellipse cx="546" cy="566" rx="14" ry="20" fill="#241F24"/>
+    <path d="M760 570 L852 498" fill="none" stroke="#241F24" stroke-width="56"/>
+    <path d="M760 570 L852 498" fill="none" stroke="#F2B544" stroke-width="52"/>
+    <path d="M832 512 L752 544 L690 560" fill="none" stroke="#241F24" stroke-width="18"/>
+    <path d="M832 512 L752 544 L690 560" fill="none" stroke="#8A5A3B" stroke-width="14"/>
+    <circle cx="684" cy="560" r="9" fill="#8A5A3B"/>
+    <rect x="744" y="540" width="14" height="8" rx="2" fill="#fff" transform="rotate(-20 751 544)"/>
+    <circle cx="880" cy="458" r="25" fill="#8A5A3B"/>
+    <path d="M858 452 Q858 428 884 430 Q906 432 905 452 Q894 440 880 444 Q866 446 858 452 Z" fill="#241F24"/>
+    <path d="M872 466 Q878 471 885 467" fill="none" stroke-width="1.6"/>
+
+    <!-- Tube from the donor's arm to the bag -->
+    <path d="M748 548 C720 610 640 640 560 620 C530 612 520 600 520 592" fill="none" stroke="#B3263A" stroke-width="3.5"/>
+
+    <!-- Nurse in scrubs with a clipboard -->
+    <g transform="translate(44 0)">
+    <polygon points="896,724 922,700 1004,700 980,724" fill="#241F24" stroke="none"/>
+    <path d="M924 560 L920 694 M960 560 L966 694" fill="none" stroke="#241F24" stroke-width="30"/>
+    <path d="M924 560 L920 694 M960 560 L966 694" fill="none" stroke="#880275" stroke-width="26"/>
+    <ellipse cx="916" cy="700" rx="18" ry="8" fill="#fff"/>
+    <ellipse cx="970" cy="700" rx="18" ry="8" fill="#fff"/>
+    <path d="M906 446 Q942 430 980 446 L984 568 H902 Z" fill="#880275"/>
+    <path d="M928 446 L943 478 L958 446" fill="#F8EAF7"/>
+    <rect x="936" y="420" width="14" height="26" fill="#6B4429"/>
+    <circle cx="943" cy="398" r="25" fill="#6B4429"/>
+    <path d="M917 394 Q918 368 944 368 Q970 368 970 394 Q956 382 943 382 Q930 382 917 394 Z" fill="#F8EAF7"/>
+    <path d="M934 408 Q941 413 949 409" fill="none" stroke-width="1.6"/>
+    <path d="M910 462 L884 520 L908 540" fill="none" stroke="#241F24" stroke-width="20"/>
+    <path d="M910 462 L884 520 L908 540" fill="none" stroke="#880275" stroke-width="16"/>
+    <rect x="896" y="500" width="46" height="58" rx="3" fill="#fff" transform="rotate(-8 919 529)"/>
+    <path d="M906 516 H930 M906 526 H932 M906 536 H926" fill="none" stroke-width="1.4" transform="rotate(-8 919 529)"/>
+    <circle cx="912" cy="540" r="8" fill="#6B4429"/>
+    </g>
+  </g>
+</svg>

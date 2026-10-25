@@ -57,8 +57,8 @@ TABLES = {
         "channel": None,
     },
     "processing": {
-        # No date or facility column exists in processing.
-        "date": None,
+        # No facility column exists in processing.
+        "date": f"substr({q('date_processed')}, 1, 10)",
         "blood_group": q("blood_groups"),
         # Product is not a row attribute here: each row is one donated unit
         # that yields several components (see the "component" breakdown).

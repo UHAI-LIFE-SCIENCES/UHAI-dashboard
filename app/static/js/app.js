@@ -75,7 +75,7 @@
       a.classList.toggle('is-active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    moreBtn.classList.toggle('is-active', route === 'forecast' || route === 'about');
+    moreBtn.classList.toggle('is-active', ['forecast', 'inventory', 'about'].indexOf(route) > -1);
   }
 
   // ------------------------------------------------------------------

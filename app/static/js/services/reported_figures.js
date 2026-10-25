@@ -52,10 +52,17 @@ window.UhaiReported = (function () {
     return keys.reduce((t, k) => { t[k] = sum(rows, k); return t; }, {});
   }
 
+  // Discards as a percentage of collection (donations) in the same period
+  const discardPct = r => r.collection ? 100 * r.discards / r.collection : null;
+  quarterly.forEach(r => { r.discardPct = discardPct(r); });
+
+  const quarterlyTotals = totals(quarterly, ['collection', 'grouping', 'screening', 'components', 'discards']);
+  quarterlyTotals.discardPct = discardPct(quarterlyTotals);
+
   return {
     monthly, target, quarterly, quarterlyReport,
     monthlyTotal: sum(monthly, 'collection'),
-    quarterlyTotals: totals(quarterly, ['collection', 'grouping', 'screening', 'components', 'discards']),
+    quarterlyTotals,
     quarterlyReportTotals: totals(quarterlyReport, ['collection', 'counselling', 'cme', 'sessions', 'apheretic', 'postDonation'])
   };
 })();

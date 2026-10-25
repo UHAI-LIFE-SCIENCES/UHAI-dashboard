@@ -89,7 +89,7 @@ window.UhaiMockService = (function () {
           'prbc_(units)': kept ? 1 : 0, 'ffp_(units)': kept && rand() < 0.6 ? 1 : 0,
           'platelets_(units)': kept && rand() < 0.4 ? 1 : 0, 'cryoprecipitate_(units)': kept && rand() < 0.2 ? 1 : 0,
           blood_groups: pick(GROUPS), 'total_volume_processed_(ml)': reactive ? 0 : 450,
-          reason_for_discard: reason, is_discarded: kept ? 'No' : 'Yes'
+          reason_for_discard: reason, is_discarded: kept ? 'No' : 'Yes', date_processed: day
         });
       }
 
@@ -136,7 +136,7 @@ window.UhaiMockService = (function () {
         : r.blood_product === 'Apheresis Platelets' ? 'Platelets' : 'Plasma',
       donor_type: r => r['voluntary/replacement'], channel: null
     },
-    processing: { date: null, blood_group: r => r.blood_groups, product: null, facility: null, donor_type: null, channel: r => channelOf(r) },
+    processing: { date: r => r.date_processed, blood_group: r => r.blood_groups, product: null, facility: null, donor_type: null, channel: r => channelOf(r) },
     distributions: {
       date: r => r.date_blood_ordered, blood_group: null, facility: r => r.recipient_facility,
       product: r => ({ 'Packed Red Blood Cells': 'Packed Red Cells', 'Fresh Frozen Plasma': 'Plasma', 'Platelet Concentrate': 'Platelets' })[r.type_of_product] || r.type_of_product,
@@ -419,7 +419,7 @@ window.UhaiMockService = (function () {
         const distinct = new Set(dates).size;
         const span = (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 864e5 + 1;
         coverage = {
-          field: { sourcing: 'date', distributions: 'date_blood_ordered', transfusions: 'date_blood_first_ordered' }[name],
+          field: { sourcing: 'date', processing: 'date_processed', distributions: 'date_blood_ordered', transfusions: 'date_blood_first_ordered' }[name],
           min: dates[0], max: dates[dates.length - 1], span_days: span, distinct_days: distinct,
           days_without_records: span - distinct, future_dated: count(dates, d => d > today),
           months: grouped(list, r => dateFn(r).slice(0, 7), { records: g => g.length, days: g => new Set(g.map(dateFn)).size },
@@ -435,12 +435,12 @@ window.UhaiMockService = (function () {
     return {
       today, tables,
       checks: [
-        { table: 'processing', check: 'rows linkable to a date', failing: DB.processing.length, total: DB.processing.length, status: 'fail', note: 'processing has no date column (mirrors the real schema).' },
+        { table: 'processing', check: 'date_processed present', failing: 0, total: DB.processing.length, status: 'pass', note: 'Undated units cannot be trended or date-filtered.' },
         { table: 'sourcing', check: 'repeat donors identifiable', failing: null, total: DB.sourcing.length, status: 'info', note: 'Mock rows carry no donor ID.' }
       ],
       schema_gaps: [
         { table: 'sourcing', missing: 'facility / blood-drive site / drive ID', impact: 'Blood-drive activity cannot be attributed to a drive or site.' },
-        { table: 'processing', missing: 'date, donation ID, storage location, temperature', impact: 'No trend, no link to sourcing, no storage/cold-chain view.' },
+        { table: 'processing', missing: 'donation ID, storage location, temperature', impact: 'No link to sourcing, no storage/cold-chain view.' },
         { table: 'distributions', missing: 'blood group, order ID', impact: 'Distribution cannot be split by blood group or linked to transfusions.' },
         { table: 'transfusions', missing: 'facility / ward', impact: 'Demand cannot be split by facility.' }
       ]
@@ -623,7 +623,7 @@ window.UhaiMockService = (function () {
         },
         date_range: { min: START, max: END },
         table_date_ranges: {},
-        date_fields: { sourcing: 'date', processing: null, distributions: 'date_blood_ordered', transfusions: 'date_blood_first_ordered' },
+        date_fields: { sourcing: 'date', processing: 'date_processed', distributions: 'date_blood_ordered', transfusions: 'date_blood_first_ordered' },
         filter_support: support(),
         metrics: Object.entries(METRICS).map(([key, m]) => ({
           key, label: m.label, unit: m.unit, table: m.table, ratio: !!m.ratio,
