@@ -1,6 +1,9 @@
 {# Logged-in person, Users (admins) and Log out, for the dashboard header #}
 {% if current_user %}
 <div class="dh__account">
+    {% if open_admin_access %}
+    <span class="dh__open" title="Anyone who opens the login page can enter as admin. Turn it off with UHAI_ADMIN_BYPASS on Render.">Open admin access is ON</span>
+    {% endif %}
     <span class="dh__user" title="{{ current_user.email }}">
         <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 17c1.2-3 3.6-4.5 6.5-4.5s5.3 1.5 6.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         {{ current_user.name }}

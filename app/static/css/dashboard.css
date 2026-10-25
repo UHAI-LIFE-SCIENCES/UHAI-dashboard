@@ -461,6 +461,7 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .dh__user { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; font-weight: 600; color: var(--ink-2); }
 .dh__user svg { width: 16px; height: 16px; color: var(--muted); }
 .dh__logout { margin: 0; }
+.dh__open { padding: 4px 10px; border-radius: 999px; background: var(--pink-light); border: 1px solid #ffc2dc; color: #9B1035; font-size: .78rem; font-weight: 700; white-space: nowrap; }
 .dh__link { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; font: 600 .9rem var(--font); color: var(--purple); text-decoration: none; cursor: pointer; }
 .dh__link:hover { background: var(--purple-light); color: var(--purple-deep); }
 @media (max-width: 680px) {

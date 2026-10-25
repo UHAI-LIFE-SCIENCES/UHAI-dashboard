@@ -54,10 +54,12 @@ LIVE = bool(os.environ.get("RENDER")) or os.environ.get("UHAI_ENV") == "producti
 # Compared against when an email is unknown, so a wrong email takes as long as a wrong password.
 _DUMMY_HASH = generate_password_hash(secrets.token_hex(16))
 
-# Temporary admin access ("bypass") until the first admin account exists. It
-# only works on the computer running the app (never live, never from another
-# device) and switches itself off once an active admin is registered. Set
-# UHAI_ADMIN_BYPASS=0 to turn it off sooner.
+# Admin access without a password ("bypass"), controlled by UHAI_ADMIN_BYPASS:
+#   not set   only on the computer running the app, never live, and only until
+#             the first active admin account exists (the default)
+#   on        everywhere, including the live site, until the owner turns it
+#             off. Anyone who opens the login page can then enter as admin.
+#   off       never
 LOCAL_ADDRESSES = {"127.0.0.1", "::1"}
 BYPASS_USER = {"id": 0, "name": "Admin (temporary access)", "email": "", "role": "admin", "active": 1, "bypass": True}
 
@@ -127,7 +129,8 @@ def init_app(app):
     app_db.migrate(MIGRATIONS)
     app.register_blueprint(bp)
     app.before_request(_require_login)
-    app.context_processor(lambda: {"current_user": current_user(), "csrf_token": csrf_token})
+    app.context_processor(lambda: {"current_user": current_user(), "csrf_token": csrf_token,
+                                   "open_admin_access": bypass_forced()})
     app.add_template_filter(kenya_time)
     app.cli.add_command(create_admin)
 
@@ -213,12 +216,26 @@ def _require_login():
     return None
 
 
+def bypass_forced():
+    """The owner has switched admin access without a password on for everyone."""
+    return os.environ.get("UHAI_ADMIN_BYPASS", "").strip().lower() in ("on", "1", "yes", "true")
+
+
 def bypass_available():
     """
-    Temporary admin access is offered only on this computer, never live, and
-    only while no active admin account exists.
+    By default, admin access without a password is offered only on this
+    computer, never live, and only while no active admin account exists.
+    UHAI_ADMIN_BYPASS=on offers it everywhere; =off never.
     """
-    if LIVE or os.environ.get("UHAI_ADMIN_BYPASS", "1") == "0":
+    setting = os.environ.get("UHAI_ADMIN_BYPASS", "").strip().lower()
+
+    if setting in ("off", "0", "no", "false"):
+        return False
+
+    if bypass_forced():
+        return True
+
+    if LIVE:
         return False
 
     if request.remote_addr not in LOCAL_ADDRESSES:
@@ -421,8 +438,9 @@ def add_user():
             (name, email, generate_password_hash(password), role, _iso(_now())),
         )
 
-    # The first real admin ends the temporary access: log in with the new account.
-    if current_user().get("bypass") and role == "admin":
+    # The first real admin ends the temporary access (unless the owner has it
+    # switched on for good): log in with the new account.
+    if current_user().get("bypass") and role == "admin" and not bypass_available():
         session.clear()
         flash(f"Admin account created for {name}. Temporary access is now off: log in with {email}.", "ok")
         return redirect(url_for("auth.login"))

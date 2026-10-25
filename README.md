@@ -26,6 +26,7 @@ Logins:
 - Admins add users, reset passwords and make users inactive at /admin/users (the "Users" link in the dashboard header).
 - Accounts are stored in uhai_app.db locally (never commit it), or in Neon PostgreSQL when DATABASE_URL is set.
 - Live settings (Render, Environment): SECRET_KEY (Render generates it; the app will not start without it) and DATABASE_URL (the Neon connection string). Never put either in the code or in git.
+- "Continue as admin" (no password): by default only on the computer running the app, until the first admin exists. Set UHAI_ADMIN_BYPASS=on (Render, Environment) to offer it on the live site too; anyone can then enter as admin, so delete the setting or set it to off as soon as accounts are ready.
 - Logins end after 8 hours without activity. After 5 wrong passwords for one email, that email is locked for 15 minutes.
 
 Editing content:
