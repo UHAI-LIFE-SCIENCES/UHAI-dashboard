@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log in · UHAI Blood Intelligence</title>
-    <meta name="description" content="Log in to UHAI Blood Intelligence, for RBTC Eldoret and UHAI staff.">
+    <title>Log in · UHAI Blood Supply Chain Strengthening</title>
+    <meta name="description" content="Log in to UHAI Blood Supply Chain Strengthening.">
     <meta name="robots" content="noindex">
     <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,13 +17,11 @@
     <main class="lp__form-side">
         <a class="lp__brand" href="{{ url_for('site_home') }}" aria-label="UHAI Life Sciences, website home">
             <img src="{{ url_for('static', filename=logo) }}" alt="" width="40" height="53">
-            <span>UHAI <small>Blood Intelligence</small></span>
+            <span>UHAI <small>Blood Supply Chain Strengthening</small></span>
         </a>
 
         <div class="lp__box">
-            <h1 class="lp__title">Log in to UHAI Blood Intelligence</h1>
-            <p class="lp__lead">For RBTC Eldoret and UHAI staff.</p>
-            <p class="lp__access">Need access? <span>Contact your UHAI administrator.</span></p>
+            <h1 class="lp__title">Log in</h1>
 
             {% for category, message in get_flashed_messages(with_categories=true) %}
             <p class="lp__notice" role="status">{{ message }}</p>
@@ -33,6 +31,35 @@
             <p class="lp__error" role="alert" id="login-error">{{ error }}</p>
             {% endif %}
 
+            {% if mode == 'code' %}
+            <form class="lp__form" method="post" action="{{ url_for('auth.login_code') }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ next_url }}">
+
+                <label class="lp__label" for="login-identifier">Email or phone number</label>
+                <input class="lp__input" id="login-identifier" name="identifier" type="text" autocomplete="username"
+                       value="{{ identifier }}" required autofocus placeholder="name@example.org or 0712 345 678"
+                       {% if error %}aria-describedby="login-error" aria-invalid="true"{% endif %}>
+
+                <button class="lp__submit" type="submit">Send code</button>
+            </form>
+            <a class="lp__alt" href="{{ url_for('auth.login', next=next_url) }}">Log in with password</a>
+
+            {% elif mode == 'verify' %}
+            <form class="lp__form" method="post" action="{{ url_for('auth.login_code_verify') }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="next" value="{{ next_url }}">
+
+                <label class="lp__label" for="login-code">Code</label>
+                <input class="lp__input lp__input--code" id="login-code" name="code" type="text" inputmode="numeric"
+                       autocomplete="one-time-code" pattern="[0-9]*" maxlength="7" required autofocus
+                       {% if error %}aria-describedby="login-error" aria-invalid="true"{% endif %}>
+
+                <button class="lp__submit" type="submit">Log in</button>
+            </form>
+            <a class="lp__alt" href="{{ url_for('auth.login_code', next=next_url) }}">Ask for a new code</a>
+
+            {% else %}
             <form class="lp__form" method="post" action="{{ url_for('auth.login') }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="next" value="{{ next_url }}">
@@ -56,7 +83,11 @@
                 <button class="lp__submit" type="submit">Log in</button>
             </form>
 
+            <a class="lp__alt" href="{{ url_for('auth.login_code', next=next_url) }}">Log in with a code</a>
+
             <p class="lp__forgot">Forgot password?</p>
+            {% endif %}
+            <p class="lp__access">Need access? <a href="{{ url_for('site_contact') }}">Contact Administrator</a></p>
 
             {% if bypass %}
             <form class="lp__bypass" method="post" action="{{ url_for('auth.login_bypass') }}">

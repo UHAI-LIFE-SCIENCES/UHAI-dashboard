@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users · Uhai Blood Insights</title>
+    <title>Users · UHAI Blood Supply Chain Strengthening</title>
     <meta name="robots" content="noindex">
     <link rel="icon" href="{{ url_for('static', filename=favicon) }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/uhai-base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
     <header class="dh">
         <div class="dh__top">
-            <a class="dh__brand" href="{{ url_for('dashboard_page') }}" aria-label="Uhai Blood Insights, dashboard">
+            <a class="dh__brand" href="{{ url_for('dashboard_page') }}" aria-label="UHAI Blood Supply Chain Strengthening, dashboard">
                 <img src="{{ url_for('static', filename=logo) }}" alt="Uhai logo" width="40" height="53">
-                <span><span class="dh__title">Uhai Blood Insights</span></span>
+                <span><span class="dh__title">UHAI Blood Supply Chain Strengthening</span></span>
             </a>
             {% include "auth/_account.html" %}
             <a class="back-btn" href="{{ url_for('dashboard_page') }}">
@@ -54,11 +54,19 @@
                 <label class="acct-field">Email
                     <input class="acct-input" name="email" type="email" required maxlength="200">
                 </label>
+                <label class="acct-field">Phone (optional)
+                    <input class="acct-input" name="phone" type="tel" inputmode="tel" maxlength="20" placeholder="0712 345 678">
+                    <span class="acct-hint">For login codes by SMS.</span>
+                </label>
                 <label class="acct-field">Role
-                    <select class="field-select" name="role">
+                    <select class="field-select" name="role" data-role>
                         <option value="staff">Staff</option>
                         <option value="admin">Admin (can manage users)</option>
                     </select>
+                </label>
+                <label class="acct-field" data-affiliation>Institutional affiliation
+                    <input class="acct-input" name="affiliation" required maxlength="{{ max_affiliation }}" placeholder="e.g. RBTC Eldoret">
+                    <span class="acct-hint">Required for staff.</span>
                 </label>
                 <label class="acct-field">Password
                     <input class="acct-input" name="password" type="password" required minlength="{{ min_password }}" autocomplete="new-password">
@@ -80,7 +88,7 @@
                     <table class="dtable">
                         <caption class="sr-only">Users</caption>
                         <thead>
-                            <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Status</th>
+                            <tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Institutional affiliation</th><th scope="col">Phone</th><th scope="col">Status</th>
                                 <th scope="col">Last login</th><th scope="col">Added</th><th scope="col">New password</th><th scope="col"></th></tr>
                         </thead>
                         <tbody>
@@ -88,6 +96,24 @@
                             <tr class="{{ '' if u.active else 'acct-off' }}">
                                 <td><b>{{ u.name }}</b>{% if current_user.id == u.id %} <span class="acct-you">(you)</span>{% endif %}<span class="acct-sub">{{ u.email }}</span></td>
                                 <td>{{ 'Admin' if u.role == 'admin' else 'Staff' }}</td>
+                                <td>
+                                    {% if u.role == 'staff' %}
+                                    <form class="acct-inline" method="post" action="{{ url_for('auth.set_affiliation', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input class="acct-input acct-input--sm{{ ' acct-input--missing' if not u.affiliation }}" name="affiliation" value="{{ u.affiliation or '' }}"
+                                               maxlength="{{ max_affiliation }}" aria-label="Institutional affiliation for {{ u.name }}" placeholder="Missing: required" required>
+                                        <button class="btn btn--outline btn--sm" type="submit">Save</button>
+                                    </form>
+                                    {% else %}<span class="acct-sub">Not needed</span>{% endif %}
+                                </td>
+                                <td>
+                                    <form class="acct-inline" method="post" action="{{ url_for('auth.set_phone', user_id=u.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input class="acct-input acct-input--sm" name="phone" type="tel" inputmode="tel" value="{{ u.phone or '' }}"
+                                               maxlength="20" aria-label="Phone for {{ u.name }}" placeholder="No phone">
+                                        <button class="btn btn--outline btn--sm" type="submit">Save</button>
+                                    </form>
+                                </td>
                                 <td><span class="acct-badge acct-badge--{{ 'on' if u.active else 'off' }}">{{ 'Active' if u.active else 'Inactive' }}</span></td>
                                 <td>{{ u.last_login|kenya_time or 'Never' }}</td>
                                 <td>{{ u.created_at|kenya_time(date_only=true) }}</td>
@@ -117,5 +143,22 @@
         </section>
         <p class="acct-foot">Times are East Africa Time. There is no public sign-up: only admins add users here.</p>
     </main>
+
+    <script>
+      // The affiliation field is for staff only: hide it (and leave it out of the form) for admins
+      (function () {
+        var role = document.querySelector('[data-role]');
+        var field = document.querySelector('[data-affiliation]');
+        if (!role || !field) return;
+        var input = field.querySelector('input');
+        function sync() {
+          var staff = role.value === 'staff';
+          field.hidden = !staff;
+          input.disabled = !staff;
+        }
+        role.addEventListener('change', sync);
+        sync();
+      })();
+    </script>
 </body>
 </html>

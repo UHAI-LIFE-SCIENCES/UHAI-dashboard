@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page_title %}{{ page_title }} · UHAI Life Sciences{% else %}UHAI Life Sciences · {{ c.TAGLINE }}{% endif %}</title>
-    <meta name="description" content="{{ c.TAGLINE }}. {% block description %}UHAI Life Sciences strengthens Kenya's blood supply chain through blood drives, predictive modelling and better data.{% endblock %}">
+    <meta name="description" content="{{ c.TAGLINE }}. {% block description %}UHAI Life Sciences runs blood drives with the Eldoret Regional Blood Transfusion Centre and plans each drive with a forecasting model.{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="UHAI Life Sciences">
     <meta property="og:title" content="{% if page_title %}{{ page_title }} · {% endif %}UHAI Life Sciences: {{ c.TAGLINE }}">
@@ -79,7 +79,7 @@
             <div>
                 <h2 class="footer__title">Data</h2>
                 <ul class="footer__links">
-                    <li><a href="{{ url_for('dashboard_page') }}">Blood Intelligence dashboard</a></li>
+                    <li><a href="{{ url_for('dashboard_page') }}">UHAI Blood Supply Chain Strengthening dashboard</a></li>
                 </ul>
             </div>
         </div>

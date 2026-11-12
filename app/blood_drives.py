@@ -7,7 +7,7 @@ page shows: "New blood drive dates are coming soon. Follow us on social media fo
 
 Fields:
   date   YYYY-MM-DD, for example "2026-10-24"
-  time   free text, for example "9:00 am – 3:00 pm"
+  time   free text, for example "9:00 am – 3:00 pm" (leave "" if not yet set)
   venue  where the drive takes place
   area   town or area, for example "Eldoret"
 """
@@ -15,17 +15,8 @@ Fields:
 from datetime import date
 
 DRIVES = [
-    # EXAMPLE ENTRY: replace with a real drive before publishing.
-    {"date": "2026-10-24", "time": "9:00 am – 3:00 pm",
-     "venue": "Eldoret Regional Blood Transfusion Centre", "area": "Eldoret"},
-
-    # EXAMPLE ENTRY: replace with a real drive before publishing.
-    {"date": "2026-11-07", "time": "10:00 am – 4:00 pm",
-     "venue": "University of Eldoret, main campus", "area": "Eldoret"},
-
-    # EXAMPLE ENTRY: replace with a real drive before publishing.
-    {"date": "2026-11-21", "time": "9:00 am – 2:00 pm",
-     "venue": "Eldoret town centre, Uhuru Gardens", "area": "Eldoret"},
+    {"date": "2026-11-27", "time": "",
+     "venue": "Moi University, main campus", "area": "Kesses, Uasin Gishu"},
 ]
 
 

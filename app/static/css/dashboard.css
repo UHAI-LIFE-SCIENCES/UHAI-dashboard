@@ -1,5 +1,5 @@
 /* ==========================================================================
-   UHAI BLOOD INSIGHTS — DASHBOARD
+   UHAI BLOOD SUPPLY CHAIN STRENGTHENING — DASHBOARD
    Builds on uhai-base.css (shared tokens, fonts and buttons with the website).
    Layout: compact header → section nav → filter bar → content.
    ========================================================================== */
@@ -44,7 +44,7 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .dh__brand { display: flex; align-items: center; gap: 14px; text-decoration: none; min-width: 0; }
 .dh__brand img { height: 46px; width: auto; flex: none; }
 .dh__brand > span { display: flex; flex-direction: column; min-width: 0; }
-.dh__title { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; color: var(--purple-ink); letter-spacing: -.01em; line-height: 1.2; }
+.dh__title { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; color: var(--purple-ink); letter-spacing: -.01em; line-height: 1.2; text-wrap: balance; overflow-wrap: anywhere; }
 .dh__subtitle { font-size: .92rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dh__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
@@ -350,7 +350,11 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 /* Summary cards: thin light-grey border, no coloured stripe; alerts show a small pink dot */
 .kblock { margin: 0 0 var(--gap); }
 .kcards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
-.kcard { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px 16px; overflow: hidden; }
+.kcard { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px 16px; overflow: hidden;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
+.kcard:hover { transform: translateY(-4px); border-color: #D9B3D2; box-shadow: 0 14px 28px rgba(58, 0, 50, .1); }
+.kcard--alert:hover { border-color: #F3B8C4; }
+@media (prefers-reduced-motion: reduce) { .kcard:hover { transform: none; } }
 .kcard__label { margin: 0; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .kcard--alert .kcard__label::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 7px 1px 0; border-radius: 50%; background: var(--pink); }
 
@@ -385,8 +389,19 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .icon-btn:disabled { opacity: .5; cursor: default; }
 .dtable tr.is-total td { font-weight: 700; color: var(--ink); background: var(--tint); border-top: 1px solid var(--line); }
 .ov > * + * { margin-top: var(--gap); }
-.ov__title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; color: var(--purple-ink); margin: calc(var(--gap) * 1.5) 0 0; line-height: 1.3; }
-.ov > .ov__title + * { margin-top: 12px; }
+/* Overview sections: the first (collections and target) on a tinted band, the rest divided by a rule */
+.ov > .ov-band { margin-top: calc(var(--gap) * 1.6); }
+.ov > .ov-band[hidden] { display: none; }
+.ov > .sh + .ov-band { margin-top: var(--gap); }
+.ov-band > * + * { margin-top: var(--gap); }
+.ov-band__head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.ov-band__title { margin: 0; font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; color: var(--purple-ink); line-height: 1.3; }
+.ov-band--primary { padding: clamp(16px, 2.4vw, 28px); border: 1px solid var(--purple-line); border-radius: calc(var(--radius) + 6px);
+  background: linear-gradient(180deg, var(--purple-light), rgba(255, 255, 255, .6) 70%); }
+.ov-band--primary .ov-band__head { border-bottom-color: var(--purple-line); }
+.ov__switch { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.ov__switch::-webkit-scrollbar { display: none; }
+.sh .ov__switch .seg__btn { flex: none; }
 .grid-main { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--gap); }
 .grid-2--top { margin: 0 0 var(--gap); }
 .gauge-note { margin: 4px 0 0; text-align: center; font-size: .88rem; color: var(--muted); }
@@ -460,6 +475,8 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .dh__account + .back-btn { margin-left: 0; }
 .dh__user { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; font-weight: 600; color: var(--ink-2); }
 .dh__user svg { width: 16px; height: 16px; color: var(--muted); }
+.dh__affil { font-weight: 500; color: var(--muted); max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dh__affil::before { content: "·"; margin: 0 6px 0 2px; }
 .dh__logout { margin: 0; }
 .dh__open { padding: 4px 10px; border-radius: 999px; background: var(--pink-light); border: 1px solid #ffc2dc; color: #9B1035; font-size: .78rem; font-weight: 700; white-space: nowrap; }
 .dh__link { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; font: 600 .9rem var(--font); color: var(--purple); text-decoration: none; cursor: pointer; }
@@ -467,6 +484,7 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 @media (max-width: 680px) {
   .dh__top { flex-wrap: wrap; }
   .dh__account { order: 3; width: 100%; margin-left: 0; justify-content: flex-end; }
+  .dh__affil { display: none; }
   .dh__account + .back-btn { margin-left: auto; }
 }
 
@@ -479,6 +497,8 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .acct-input:hover { border-color: var(--purple); }
 .acct-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 4px rgba(136, 2, 117, .12); }
 .acct-input--sm { height: 36px; width: 160px; }
+.acct-input--missing { border-color: #f3b8c4; background: #fdf6f8; }
+.acct-field[hidden] { display: none; }
 .acct-hint { font-weight: 400; font-size: .8rem; color: var(--muted); }
 .acct-actions { align-self: end; }
 .acct-inline { display: flex; gap: 6px; align-items: center; margin: 0; }
@@ -534,4 +554,33 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
   .inv-bar__tools, .inv-search { width: 100%; }
   .inv-bar__tools .field-select--sm { flex: 1; }
   .inv-form { padding: 16px 14px 20px; }
+}
+
+/* ==========================================================================
+   TYPE SCALE: Inter throughout the dashboard
+     Page title       24px / 700, tight
+     Section headers  18px / 600, tight
+     Card numbers     30px / 700, tight, tabular figures
+     Card labels      12px / 600, capitals, wide spacing, muted
+     Body copy        14px / 400, muted
+     Metadata         12px / 400–500 (periods, card notes, chart axes)
+   ========================================================================== */
+:root {
+  --font-display: var(--font);
+  --tight: -.025em;
+  --wider: .05em;
+  --label: #7a7280;   /* lighter than body text, still 4.5:1 on white */
+}
+.sh__title { font-family: var(--font); font-size: 1.5rem; font-weight: 700; letter-spacing: var(--tight); line-height: 1.25; }
+.panel__title, .ov-band__title { font-family: var(--font); font-size: 1.125rem; font-weight: 600; letter-spacing: var(--tight); line-height: 1.35; }
+.kcard__value { font-family: var(--font); font-size: 1.875rem; font-weight: 700; letter-spacing: var(--tight); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kcard__unit { font-size: .75rem; font-weight: 500; letter-spacing: 0; }
+.kcard__label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: var(--wider); color: var(--label); }
+.sh__lead, .panel__sub, .facts li { font-size: .875rem; font-weight: 400; line-height: 1.5; color: var(--muted); }
+.note { font-size: .875rem; line-height: 1.5; }
+.kperiod { font-size: .75rem; font-weight: 500; }
+.kcard__note { font-size: .75rem; font-weight: 400; color: var(--muted); }
+@media (max-width: 680px) {
+  .sh__title { font-size: 1.375rem; }
+  .kcard__value { font-size: 1.5rem; }
 }

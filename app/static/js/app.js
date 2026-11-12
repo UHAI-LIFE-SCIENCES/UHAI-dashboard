@@ -1,5 +1,5 @@
 /**
- * UHAI BLOOD INSIGHTS — routing, shared filter state and page lifecycle.
+ * UHAI BLOOD SUPPLY CHAIN STRENGTHENING — routing, shared filter state and page lifecycle.
  * Pages read data only through UhaiData (the data service).
  */
 (function () {
@@ -9,7 +9,7 @@
   const Pages = window.UhaiPages;
   const view = document.getElementById('view');
   const filtersEl = document.getElementById('filters');
-  const BASE_TITLE = document.title;            // "Uhai Blood Insights · <tagline>", from the template
+  const BASE_TITLE = document.title;            // "UHAI Blood Supply Chain Strengthening · <tagline>", from the template
 
   // Older links (from the previous dashboard layout) still land somewhere sensible
   const ALIASES = {
@@ -119,6 +119,7 @@
         state: app.pageState[route], locations: () => UhaiData.locations(),
         onResetFilters: () => setFilters(U.defaultFilters(app.meta))
       });
+      U.countUpCards(view);
     } catch (err) {
       console.error(err);
       view.innerHTML = U.state('error', `<b>This section could not be displayed.</b><br>${U.esc(err.message)}`);

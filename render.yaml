@@ -29,6 +29,24 @@ services:
         sync: false
       - key: UHAI_CONTACT_PHONE
         sync: false
+      # Login codes by email (any SMTP server, e.g. Brevo free plan or a Gmail app password)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      # Login codes by SMS (Africa's Talking). AT_USERNAME=sandbox for free testing.
+      - key: AT_USERNAME
+        sync: false
+      - key: AT_API_KEY
+        sync: false
+      - key: AT_SENDER_ID
+        sync: false
     disk:
       name: uhai-data
       mountPath: /var/data

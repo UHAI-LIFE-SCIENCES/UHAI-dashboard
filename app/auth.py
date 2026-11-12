@@ -5,7 +5,9 @@ Login for the dashboard.
                files, /login, /api/contact and /api/ping.
   Login        /dashboard and every other /api/ route. A data route called
                without a login answers 401 (JSON); a page redirects to /login.
-  Admins only  /admin/users: add users, reset passwords, make users inactive.
+  Admins only  /admin/users: add users, reset passwords, make users inactive,
+               set a staff member's institutional affiliation and anyone's
+               phone number (used for login codes by SMS).
 
 There is no public sign-up. The first admin is created in the terminal:
 
@@ -15,22 +17,33 @@ Passwords are stored only as werkzeug.security hashes. Sessions are signed
 cookies (HttpOnly, SameSite=Lax, Secure when live) that end after 8 hours
 without activity. Forms carry a CSRF token. After 5 failed logins for the same
 email, that email is locked for 15 minutes.
+
+Login with a code (/login/code) is the alternative to a password: the person
+enters their email or phone number, a 6-digit code is sent to it (see
+notify.py), and they type the code in. Codes last 10 minutes, work once, allow
+5 tries, and are stored only as an HMAC keyed with SECRET_KEY. At most 3 codes
+can be asked for per email or phone in 15 minutes. Every answer is the same
+whether or not an account exists, and codes are sent in the background so the
+response time does not give it away either.
 """
 
+import hashlib
 import hmac
 import os
 import re
 import secrets
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
 import click
-from flask import (Blueprint, abort, flash, g, jsonify, redirect,
+from flask import (Blueprint, abort, current_app, flash, g, jsonify, redirect,
                    render_template, request, session, url_for)
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import app_db
+import notify
 import site_content
 from app_db import ID
 
@@ -42,7 +55,13 @@ IDLE_TIMEOUT = timedelta(hours=8)
 MAX_FAILURES = 5
 LOCK_TIME = timedelta(minutes=15)
 MIN_PASSWORD_LENGTH = 10
+MAX_AFFILIATION_LENGTH = 160
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+CODE_LIFETIME = timedelta(minutes=10)
+CODE_MAX_TRIES = 5
+CODE_MAX_SENDS = 3
+CODE_SEND_WINDOW = timedelta(minutes=15)
 
 # Everything under these needs a login; /api routes listed here stay public.
 PROTECTED_PREFIXES = ("/dashboard", "/admin", "/api/")
@@ -88,7 +107,33 @@ def _migrate_v1(c):
     )""")
 
 
-MIGRATIONS = [("auth_v1", _migrate_v1)]
+def _migrate_v2(c):
+    # Institutional affiliation: required for staff, empty for admins.
+    c.execute("ALTER TABLE users ADD COLUMN affiliation TEXT")
+
+
+def _migrate_v3(c):
+    # Phone number (+2547XXXXXXXX), for login codes by SMS. Optional.
+    c.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    c.execute(f"""CREATE TABLE IF NOT EXISTS login_codes (
+        id {ID},
+        user_id INTEGER NOT NULL,
+        code_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        used_at TEXT
+    )""")
+    c.execute("CREATE INDEX IF NOT EXISTS login_codes_user ON login_codes (user_id)")
+    # One row per code asked for, by the email or phone typed in (account or not).
+    c.execute("""CREATE TABLE IF NOT EXISTS login_code_requests (
+        identifier TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )""")
+    c.execute("CREATE INDEX IF NOT EXISTS login_code_requests_identifier ON login_code_requests (identifier)")
+
+
+MIGRATIONS = [("auth_v1", _migrate_v1), ("auth_v2", _migrate_v2), ("auth_v3", _migrate_v3)]
 
 
 def _now():
@@ -101,6 +146,17 @@ def _iso(moment):
 
 def _normal_email(value):
     return (value or "").strip().lower()
+
+
+def _normal_phone(value):
+    """Kenyan mobile number in any common form -> '+254712345678', or None."""
+    digits = re.sub(r"[\s\-().]", "", value or "").removeprefix("+")
+
+    if not digits.isdigit():
+        return None
+
+    rest = digits[3:] if digits.startswith("254") else digits[1:] if digits.startswith("0") else digits
+    return f"+254{rest}" if re.fullmatch(r"[17]\d{8}", rest) else None
 
 
 # ==================================================
@@ -182,7 +238,7 @@ def current_user():
         return None
 
     rows = app_db.query(
-        "SELECT id, name, email, role, active, session_version FROM users WHERE id = ?", (user_id,)
+        "SELECT id, name, email, role, affiliation, active, session_version FROM users WHERE id = ?", (user_id,)
     )
 
     if not rows or not rows[0]["active"] or rows[0]["session_version"] != session.get("ver"):
@@ -348,21 +404,198 @@ def login():
 
             if user and correct and user["active"]:
                 _clear_failures(email)
-                session.clear()
-                session.permanent = True
-                session.update(uid=user["id"], ver=user["session_version"], seen=time.time())
-
-                with app_db.transaction() as c:
-                    c.execute("UPDATE users SET last_login = ? WHERE id = ?", (_iso(_now()), user["id"]))
-
+                _start_session(user)
                 return redirect(target)
 
             _record_failure(email)
             # Same message whether the email, the password or the account status was the problem.
             error = "Email or password is not correct."
 
-    return _site_page("auth/login.html", page="login", page_title="Log in", error=error, email=email,
+    return _site_page("auth/login.html", page="login", page_title="Log in", mode="password", error=error, email=email,
                       next_url=target, bypass=bypass_available())
+
+
+def _start_session(user):
+    session.clear()
+    session.permanent = True
+    session.update(uid=user["id"], ver=user["session_version"], seen=time.time())
+
+    with app_db.transaction() as c:
+        c.execute("UPDATE users SET last_login = ? WHERE id = ?", (_iso(_now()), user["id"]))
+
+
+# ==================================================
+# LOGIN WITH A CODE
+# ==================================================
+
+def _read_identifier(value):
+    """An email or Kenyan phone number typed in -> (kind, normalised value), or (None, None)."""
+    value = (value or "").strip()
+
+    if "@" in value:
+        email = _normal_email(value)
+        return ("email", email) if EMAIL_RE.match(email) and len(email) <= 200 else (None, None)
+
+    phone = _normal_phone(value)
+    return ("phone", phone) if phone else (None, None)
+
+
+def _code_hash(user_id, code):
+    key = current_app.config["SECRET_KEY"].encode()
+    return hmac.new(key, f"{user_id}:{code}".encode(), hashlib.sha256).hexdigest()
+
+
+def _too_many_codes(identifier):
+    """Record one more code asked for; True if the limit for this email or phone is reached."""
+    now = _now()
+
+    with app_db.transaction() as c:
+        c.execute("DELETE FROM login_code_requests WHERE created_at < ?", (_iso(now - timedelta(days=1)),))
+        recent = c.execute(
+            "SELECT COUNT(*) FROM login_code_requests WHERE identifier = ? AND created_at >= ?",
+            (identifier, _iso(now - CODE_SEND_WINDOW)),
+        ).fetchone()[0]
+
+        if recent >= CODE_MAX_SENDS:
+            return True
+
+        c.execute("INSERT INTO login_code_requests (identifier, created_at) VALUES (?, ?)", (identifier, _iso(now)))
+
+    return False
+
+
+def _active_user_by(kind, identifier):
+    if kind not in ("email", "phone"):
+        return None
+
+    rows = app_db.query(
+        f"SELECT id, name, email, phone, session_version FROM users WHERE {kind} = ? AND active = 1", (identifier,)
+    )
+    return rows[0] if rows else None
+
+
+def _send_code(kind, to, code):
+    """Send in the background, so the answer comes back as fast whether or not an account exists."""
+    app = current_app._get_current_object()
+    minutes = int(CODE_LIFETIME.total_seconds() // 60)
+    text = f"Your UHAI login code is {code}. It expires in {minutes} minutes. If you did not ask for it, ignore this message."
+
+    def work():
+        try:
+            if kind == "email" and notify.email_ready():
+                notify.send_email(to, "Your UHAI login code", text)
+            elif kind == "phone" and notify.sms_ready():
+                notify.send_sms(to, text)
+            elif not LIVE:
+                # On this computer, without email or SMS settings: show the code in the terminal.
+                app.logger.warning("Login code for %s: %s (not sent: no %s settings)", to, code, kind)
+        except Exception:
+            app.logger.exception("Login code could not be sent by %s.", kind)
+
+    threading.Thread(target=work, daemon=True).start()
+
+
+def _channel_ready(kind):
+    return not LIVE or (notify.email_ready() if kind == "email" else notify.sms_ready())
+
+
+@bp.route("/login/code", methods=["GET", "POST"])
+def login_code():
+    target = _safe_next(request.values.get("next"))
+
+    if current_user():
+        return redirect(target)
+
+    error = None
+    identifier = (request.form.get("identifier") or "").strip()
+
+    if request.method == "POST":
+        kind, value = _read_identifier(identifier)
+
+        if not _csrf_ok():
+            error = "This page was open for too long. Please try again."
+        elif not kind:
+            error = "Please enter a valid email address or Kenyan mobile number, like 0712 345 678."
+        elif not _channel_ready(kind):
+            error = f"Codes by {'email' if kind == 'email' else 'SMS'} are not set up yet. Please log in with your password."
+        elif _too_many_codes(value):
+            error = f"Too many codes asked for. Please wait {int(CODE_SEND_WINDOW.total_seconds() // 60)} minutes and try again."
+        else:
+            user = _active_user_by(kind, value)
+
+            if user:
+                code = f"{secrets.randbelow(10 ** 6):06d}"
+                now = _now()
+
+                with app_db.transaction() as c:
+                    # A new code replaces any earlier one.
+                    c.execute("DELETE FROM login_codes WHERE user_id = ?", (user["id"],))
+                    c.execute(
+                        "INSERT INTO login_codes (user_id, code_hash, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                        (user["id"], _code_hash(user["id"], code), _iso(now), _iso(now + CODE_LIFETIME)),
+                    )
+
+                _send_code(kind, value, code)
+
+            # Same answer whether or not an account matched.
+            session["code_for"] = [kind, value]
+            return redirect(url_for("auth.login_code_verify", next=target))
+
+    return _site_page("auth/login.html", page="login", page_title="Log in with a code", mode="code",
+                      error=error, identifier=identifier, next_url=target, bypass=False)
+
+
+@bp.route("/login/code/verify", methods=["GET", "POST"])
+def login_code_verify():
+    target = _safe_next(request.values.get("next"))
+
+    if current_user():
+        return redirect(target)
+
+    pending = session.get("code_for")
+
+    if not pending:
+        return redirect(url_for("auth.login_code", next=target))
+
+    kind, value = pending
+    error = None
+
+    if request.method == "POST":
+        code = re.sub(r"\s", "", request.form.get("code") or "")
+
+        if not _csrf_ok():
+            error = "This page was open for too long. Please try again."
+        elif not re.fullmatch(r"\d{6}", code):
+            error = "Please enter the 6-digit code."
+        else:
+            user = _active_user_by(kind, value)
+            rows = app_db.query(
+                "SELECT id, code_hash, expires_at, attempts FROM login_codes WHERE user_id = ? AND used_at IS NULL",
+                (user["id"],),
+            ) if user else []
+            row = rows[0] if rows else None
+            # Always compute a hash, so a missing account takes as long as a wrong code.
+            given = _code_hash(user["id"] if user else 0, code)
+            usable = row and row["attempts"] < CODE_MAX_TRIES and datetime.fromisoformat(row["expires_at"]) > _now()
+
+            if usable and hmac.compare_digest(given, row["code_hash"]):
+                with app_db.transaction() as c:
+                    claimed = c.execute(
+                        "UPDATE login_codes SET used_at = ? WHERE id = ? AND used_at IS NULL", (_iso(_now()), row["id"])
+                    ).rowcount
+
+                if claimed:
+                    _start_session(user)
+                    return redirect(target)
+
+            if row:
+                with app_db.transaction() as c:
+                    c.execute("UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?", (row["id"],))
+
+            error = "That code is not right or has expired. Check it, or ask for a new code."
+
+    return _site_page("auth/login.html", page="login", page_title="Enter your code", mode="verify",
+                      error=error, sent_to=value, next_url=target, bypass=False)
 
 
 @bp.route("/login/bypass", methods=["POST"])
@@ -396,6 +629,16 @@ def _check_password(password):
     return None
 
 
+def _check_affiliation(role, affiliation):
+    if role != "staff":
+        return None
+    if not affiliation:
+        return "Please enter the institutional affiliation for staff."
+    if len(affiliation) > MAX_AFFILIATION_LENGTH:
+        return f"Keep the affiliation under {MAX_AFFILIATION_LENGTH} characters."
+    return None
+
+
 def _done(message, ok=True):
     flash(message, "ok" if ok else "error")
     return redirect(url_for("auth.users"))
@@ -404,9 +647,10 @@ def _done(message, ok=True):
 @bp.route("/admin/users")
 def users():
     rows = app_db.query(
-        "SELECT id, name, email, role, active, created_at, last_login FROM users ORDER BY active DESC, lower(name)"
+        "SELECT id, name, email, phone, role, affiliation, active, created_at, last_login FROM users ORDER BY active DESC, lower(name)"
     )
-    return render_template("auth/users.html", users=rows, roles=ROLES, min_password=MIN_PASSWORD_LENGTH)
+    return render_template("auth/users.html", users=rows, roles=ROLES, min_password=MIN_PASSWORD_LENGTH,
+                           max_affiliation=MAX_AFFILIATION_LENGTH)
 
 
 @bp.route("/admin/users", methods=["POST"])
@@ -418,24 +662,32 @@ def add_user():
     email = _normal_email(request.form.get("email"))
     role = request.form.get("role")
     password = request.form.get("password") or ""
+    # Only staff carry an affiliation; anything sent for an admin is ignored.
+    affiliation = (request.form.get("affiliation") or "").strip() if role == "staff" else None
+    phone_typed = (request.form.get("phone") or "").strip()
+    phone = _normal_phone(phone_typed)
 
     problem = (
         "Please enter a name." if not name or len(name) > 120 else
         "Please enter a valid email address." if not EMAIL_RE.match(email) or len(email) > 200 else
+        "Please enter a Kenyan mobile number, like 0712 345 678, or leave it empty." if phone_typed and not phone else
         "Please choose a role." if role not in ROLES else
-        _check_password(password)
+        _check_affiliation(role, affiliation) or _check_password(password)
     )
 
     if not problem and app_db.query("SELECT 1 FROM users WHERE email = ?", (email,)):
         problem = "A user with this email already exists."
+
+    if not problem and phone and app_db.query("SELECT 1 FROM users WHERE phone = ?", (phone,)):
+        problem = "Another user already has this phone number."
 
     if problem:
         return _done(f"User not added: {problem}", ok=False)
 
     with app_db.transaction() as c:
         c.execute(
-            "INSERT INTO users (name, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
-            (name, email, generate_password_hash(password), role, _iso(_now())),
+            "INSERT INTO users (name, email, phone, password_hash, role, affiliation, active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+            (name, email, phone, generate_password_hash(password), role, affiliation, _iso(_now())),
         )
 
     # The first real admin ends the temporary access (unless the owner has it
@@ -449,7 +701,7 @@ def add_user():
 
 
 def _user_or_404(user_id):
-    rows = app_db.query("SELECT id, name, email, active FROM users WHERE id = ?", (user_id,))
+    rows = app_db.query("SELECT id, name, email, role, active FROM users WHERE id = ?", (user_id,))
 
     if not rows:
         abort(404)
@@ -476,11 +728,55 @@ def reset_password(user_id):
             (generate_password_hash(password), user_id),
         )
         c.execute("DELETE FROM login_attempts WHERE email = ?", (user["email"],))
+        c.execute("DELETE FROM login_codes WHERE user_id = ?", (user_id,))
 
     if user_id == current_user()["id"]:
         session["ver"] = session.get("ver", 1) + 1
 
     return _done(f"Password changed for {user['name']}.")
+
+
+@bp.route("/admin/users/<int:user_id>/affiliation", methods=["POST"])
+def set_affiliation(user_id):
+    if not _csrf_ok():
+        return _done("This page was open for too long. Please try again.", ok=False)
+
+    user = _user_or_404(user_id)
+
+    if user["role"] != "staff":
+        return _done("Only staff have an institutional affiliation.", ok=False)
+
+    affiliation = (request.form.get("affiliation") or "").strip()
+    problem = _check_affiliation("staff", affiliation)
+
+    if problem:
+        return _done(f"Affiliation not changed: {problem}", ok=False)
+
+    with app_db.transaction() as c:
+        c.execute("UPDATE users SET affiliation = ? WHERE id = ?", (affiliation, user_id))
+
+    return _done(f"Affiliation saved for {user['name']}.")
+
+
+@bp.route("/admin/users/<int:user_id>/phone", methods=["POST"])
+def set_phone(user_id):
+    if not _csrf_ok():
+        return _done("This page was open for too long. Please try again.", ok=False)
+
+    user = _user_or_404(user_id)
+    typed = (request.form.get("phone") or "").strip()
+    phone = _normal_phone(typed)
+
+    if typed and not phone:
+        return _done("Phone not changed: please enter a Kenyan mobile number, like 0712 345 678.", ok=False)
+
+    if phone and app_db.query("SELECT 1 FROM users WHERE phone = ? AND id <> ?", (phone, user_id)):
+        return _done("Phone not changed: another user already has this number.", ok=False)
+
+    with app_db.transaction() as c:
+        c.execute("UPDATE users SET phone = ? WHERE id = ?", (phone, user_id))
+
+    return _done(f"Phone {'saved' if phone else 'removed'} for {user['name']}.")
 
 
 @bp.route("/admin/users/<int:user_id>/active", methods=["POST"])
@@ -499,6 +795,7 @@ def set_active(user_id):
             "UPDATE users SET active = ?, session_version = session_version + 1 WHERE id = ?",
             (1 if active else 0, user_id),
         )
+        c.execute("DELETE FROM login_codes WHERE user_id = ?", (user_id,))
 
     return _done(f"{user['name']} is now {'active and can log in' if active else 'inactive and cannot log in'}.")
 

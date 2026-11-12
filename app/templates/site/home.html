@@ -8,19 +8,31 @@
     <div class="wrap hero__grid">
         <div class="hero__text">
             <p class="eyebrow">{{ c.TAGLINE }}</p>
-            <h1 class="hero__title">Safe blood, on time, for every patient who needs it.</h1>
-            <p class="hero__lead">We are a social enterprise strengthening Kenya's blood supply chain.
-                We mobilise donors through blood drives, and use predictive modelling and better data
-                so that blood is collected, stored and shared where it is needed most.</p>
-            <div class="hero__actions">
-                <a class="btn btn--primary btn--lg" href="{{ url_for('site_about') }}">Learn About UHAI</a>
-                <a class="btn btn--outline btn--lg" href="{{ url_for('dashboard_page') }}">Go to Dashboard</a>
+            <h1 class="hero__title" data-split>Kenya needs 500,000 pints of blood a year. We help Eldoret collect more of it.</h1>
+            <p class="hero__lead hero__rise">UHAI Life Sciences is a social enterprise in Eldoret, founded in {{ c.FOUNDED }}.
+                We run blood drives with the Eldoret Regional Blood Transfusion Centre, at the centre and at colleges
+                and community venues, and we use a forecasting model to plan how much each drive will collect.</p>
+            <div class="hero__actions hero__rise">
+                <a class="btn btn--primary btn--lg" href="{{ url_for('site_about') }}" data-magnetic>Learn About UHAI</a>
+                <a class="btn btn--outline btn--lg" href="{{ url_for('dashboard_page') }}" data-magnetic>Go to Dashboard</a>
             </div>
         </div>
         <figure class="hero__media">
-            <div class="hero__frame">{{ photo(c, 'donor-chair', '(max-width: 900px) 90vw, 40vw', eager=True) }}</div>
+            <div class="hero__frame" data-parallax>{{ photo(c, 'donor-chair', '(max-width: 900px) 90vw, 40vw', eager=True) }}</div>
             <figcaption>{{ c.PHOTOS['donor-chair'].caption }}</figcaption>
         </figure>
+    </div>
+    <div class="pulse" aria-hidden="true" data-pulse>
+        <svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path class="pulse__base"/><path class="pulse__trace" pathLength="100"/></svg>
+    </div>
+</section>
+
+<!-- PARTNERS (names: PARTNER_NAMES in app/site_content.py) -->
+<section class="ticker" aria-labelledby="ticker-title">
+    <h2 class="ticker__label" id="ticker-title">Working with</h2>
+    <div class="ticker__viewport">
+        <ul class="ticker__track">{% for n in c.PARTNER_NAMES %}<li>{{ n }}</li>{% endfor %}</ul>
+        <ul class="ticker__track" aria-hidden="true">{% for n in c.PARTNER_NAMES %}<li>{{ n }}</li>{% endfor %}</ul>
     </div>
 </section>
 
@@ -54,9 +66,9 @@
     <div class="wrap">
         <div class="section-head reveal">
             <p class="eyebrow">What UHAI does</p>
-            <h2 class="h2" id="does-title">We work on the whole journey, from vein to vein.</h2>
-            <p class="lead">With the Eldoret blood bank, UHAI focuses on three links in the chain. Data and
-                predictive modelling connect them, so that each drive, each fridge and each request is planned rather than improvised.</p>
+            <h2 class="h2" id="does-title">Three parts of the blood supply chain we work on</h2>
+            <p class="lead">Our work with the Eldoret blood bank covers finding donors, keeping blood at the right
+                temperature, and keeping one record of the blood available for hospitals.</p>
         </div>
         <div class="steps reveal" data-steps>
             <div class="steps__tabs" role="tablist" aria-label="What UHAI does">
@@ -127,7 +139,7 @@
         <div class="section-head reveal">
             <p class="eyebrow">Next Blood Drive</p>
             <h2 class="h2" id="drive-title">Give blood at an upcoming drive</h2>
-            <p class="lead">Join us at one of our upcoming blood drives in Eldoret. Every donation can help save a life.</p>
+            <p class="lead">Staff from the Eldoret blood bank screen every donor on site before they give blood.</p>
         </div>
         {% if drives %}
         <ul class="drives">
@@ -140,7 +152,7 @@
                 </div>
                 <dl class="drive__details">
                     <div><dt>Date</dt><dd><time datetime="{{ d.date }}">{{ d.label }}</time></dd></div>
-                    <div><dt>Time</dt><dd>{{ d.time }}</dd></div>
+                    {% if d.time %}<div><dt>Time</dt><dd>{{ d.time }}</dd></div>{% endif %}
                     <div><dt>Venue</dt><dd>{{ d.venue }}</dd></div>
                     <div><dt>Area</dt><dd>{{ d.area }}</dd></div>
                 </dl>
@@ -176,33 +188,26 @@
     </div>
 </section>
 
-<!-- DASHBOARD PREVIEW (blood stock values: BLOOD_STOCK at the top of static/js/site.js) -->
-<section class="cta" aria-labelledby="preview-title">
+<!-- MONTHLY COLLECTIONS (figures: app/static/js/services/reported_figures.js, shared with the dashboard) -->
+<section class="cta" aria-labelledby="collect-title">
     <div class="wrap preview reveal">
         <div class="preview__text">
-            <h2 class="cta__title" id="preview-title">See the blood supply chain in data.</h2>
-            <p>The Blood Intelligence dashboard follows sourcing, processing, distribution and transfusion demand in one place.
-                Pick a blood group for a quick look at current supply.</p>
+            <p class="eyebrow cta__eyebrow">RBTC Eldoret · July 2025 to June 2026</p>
+            <h2 class="cta__title" id="collect-title">Whole blood collected at the Eldoret blood bank, month by month</h2>
+            <p>From the centre's monthly reports. Staff of the centre and UHAI see sourcing, processing,
+                distribution and transfusions in the dashboard.</p>
             <div class="cta__actions">
+                <a class="btn btn--light btn--lg" href="{{ url_for('dashboard_page') }}" data-magnetic>Go to dashboard {{ arrow() }}</a>
                 <a class="btn btn--ghost-light btn--lg" href="{{ url_for('site_contact') }}">Partner with UHAI</a>
             </div>
         </div>
-        <div class="stock" data-stock>
-            <h3 class="stock__title" id="stock-title">Blood supply by group</h3>
-            <div class="stock__grid">
-                <div class="stock__pills" role="group" aria-labelledby="stock-title">
-                    {% for g in ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] %}
-                    <button type="button" class="stock__pill" data-group="{{ g }}" aria-pressed="{{ 'true' if g == 'O+' else 'false' }}"
-                            aria-label="{{ g | replace('+', ' positive') | replace('-', ' negative') }}">{{ g }}</button>
-                    {% endfor %}
-                </div>
-                <div class="stock__panel" role="status" aria-live="polite" aria-atomic="true">
-                    <p class="stock__group" data-stock-group>O+</p>
-                    <p class="stock__units"><span data-stock-units>–</span> <span class="stock__unit">units available</span></p>
-                    <p class="stock__status" data-stock-status><span class="stock__dot" aria-hidden="true"></span><span data-stock-label></span></p>
-                </div>
-            </div>
-            <a class="btn btn--primary btn--lg stock__btn" href="{{ url_for('dashboard_page') }}">Go to dashboard {{ arrow() }}</a>
+        <div class="collect" data-collect hidden>
+            <p class="collect__readout" aria-live="polite">
+                <span class="collect__period" data-collect-period></span>
+                <span class="collect__units"><b data-collect-units></b> units</span>
+            </p>
+            <div class="collect__bars" role="group" aria-label="Units collected each month" data-collect-bars></div>
+            <p class="collect__hint">Point at or tap a month.</p>
         </div>
     </div>
 </section>
@@ -211,6 +216,7 @@
 {% endblock %}
 
 {% block after %}
+<script src="{{ url_for('static', filename='js/services/reported_figures.js') }}" defer></script>
 <script>
   // Links from the old single-page dashboard (/#/overview etc.) now live at /dashboard.
   (function () {
