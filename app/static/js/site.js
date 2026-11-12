@@ -1,26 +1,28 @@
 /**
- * UHAI public website — small, dependency-free interactions.
- * Navigation, scroll reveal and count-up, step-tabs, blood supply widget,
- * photo lightbox, FAQ accordion, contact form.
+ * UHAI public website: small, dependency-free interactions.
+ * Navigation, scroll reveal and count-up, heading and hero motion, heartbeat
+ * line, tilting cards, step-tabs with self-drawing pictures, monthly
+ * collections chart, photo lightbox, FAQ accordion, contact form.
+ * Movement is skipped for people who ask their device for reduced motion.
  */
-
-// Blood supply shown in the home-page widget. Edit these values to update it.
-// status must be 'Stable', 'Low' or 'Critical'.
-const BLOOD_STOCK = {
-  'O+':  { units: 120, status: 'Stable' },
-  'O-':  { units: 18,  status: 'Critical' },
-  'A+':  { units: 86,  status: 'Stable' },
-  'A-':  { units: 14,  status: 'Low' },
-  'B+':  { units: 64,  status: 'Stable' },
-  'B-':  { units: 9,   status: 'Critical' },
-  'AB+': { units: 27,  status: 'Low' },
-  'AB-': { units: 6,   status: 'Low' }
-};
 
 (function () {
   'use strict';
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  // One scroll handler per frame for everything that follows the page position
+  const scrollJobs = [];
+  let scrollQueued = false;
+  function onScrollFrame(job) { scrollJobs.push(job); job(); }
+  function runScrollJobs() { scrollQueued = false; scrollJobs.forEach(job => job()); }
+  window.addEventListener('scroll', () => {
+    if (!scrollQueued) { scrollQueued = true; requestAnimationFrame(runScrollJobs); }
+  }, { passive: true });
+  window.addEventListener('resize', runScrollJobs);
+
+  const esc = text => text.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 
   // ------------------------------------------------------------------
   // Navigation
@@ -43,9 +45,15 @@ const BLOOD_STOCK = {
     nav.querySelectorAll('.nav__links a').forEach(a => a.addEventListener('click', () => setMenu(false)));
     window.matchMedia('(min-width: 1101px)').addEventListener('change', e => { if (e.matches) setMenu(false); });
 
-    const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 8);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
+    // Shadow once the page moves; the bar slides away while reading down and returns on the way up
+    let lastY = window.scrollY;
+    onScrollFrame(() => {
+      const y = window.scrollY;
+      const busy = nav.classList.contains('is-open') || nav.contains(document.activeElement);
+      nav.classList.toggle('is-scrolled', y > 8);
+      nav.classList.toggle('is-hidden', !reduceMotion && !busy && y > lastY && y > 160);
+      lastY = y;
+    });
   }
 
   // ------------------------------------------------------------------
@@ -103,6 +111,162 @@ const BLOOD_STOCK = {
   }
 
   // ------------------------------------------------------------------
+  // The home-page main heading (data-split) rises in word by word when the
+  // page opens. Screen readers get the plain text.
+  // ------------------------------------------------------------------
+  function splitWords(el) {
+    let n = 0;
+    const walk = node => [...node.childNodes].forEach(child => {
+      if (child.nodeType === Node.ELEMENT_NODE) { walk(child); return; }
+      if (child.nodeType !== Node.TEXT_NODE) return;
+      const words = document.createDocumentFragment();
+      child.textContent.split(/(\s+)/).forEach(part => {
+        if (!part) return;
+        if (!part.trim()) { words.append(' '); return; }
+        const outer = document.createElement('span');
+        const inner = document.createElement('span');
+        outer.className = 'split__word';
+        outer.setAttribute('aria-hidden', 'true');
+        inner.style.setProperty('--i', n++);
+        inner.textContent = part;
+        outer.append(inner);
+        words.append(outer);
+      });
+      child.replaceWith(words);
+    });
+    el.setAttribute('aria-label', el.textContent.trim().replace(/\s+/g, ' '));
+    walk(el);
+  }
+
+  if (!reduceMotion) {
+    document.querySelectorAll('[data-split]').forEach(el => {
+      splitWords(el);
+      el.classList.add('is-in');
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Hero: the photo drifts as the page scrolls, and buttons marked
+  // data-magnetic lean towards a mouse pointer
+  // ------------------------------------------------------------------
+  if (!reduceMotion) {
+
+    const drift = document.querySelector('[data-parallax]');
+    if (drift) {
+      onScrollFrame(() => {
+        const r = drift.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) return;
+        const offset = (r.top + r.height / 2 - window.innerHeight / 2) * -0.08;
+        drift.style.setProperty('--drift', offset.toFixed(1) + 'px');
+      });
+    }
+
+    if (finePointer) {
+      document.querySelectorAll('[data-magnetic]').forEach(btn => {
+        btn.addEventListener('pointermove', e => {
+          const r = btn.getBoundingClientRect();
+          const x = (e.clientX - r.left - r.width / 2) * 0.18;
+          const y = (e.clientY - r.top - r.height / 2) * 0.3;
+          btn.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        });
+        btn.addEventListener('pointerleave', () => { btn.style.transform = ''; });
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Heartbeat line under the home-page hero: a trace runs along it, and the
+  // beats near a mouse pointer grow taller
+  // ------------------------------------------------------------------
+  const pulse = document.querySelector('[data-pulse]');
+  if (pulse) {
+    const lines = pulse.querySelectorAll('path');
+    const WIDTH = 1200, BASE = 44, GAP = 240;
+    // One beat as [x, y] steps from the baseline: P wave, QRS spike, T wave
+    const BEAT = [[0, 0], [10, -3], [20, 0], [30, 0], [34, 4], [40, -24], [46, 10], [50, 0], [64, 0], [72, -6], [82, 0]];
+    let pointerX = null;
+
+    const drawPulse = () => {
+      let d = `M0 ${BASE}`;
+      for (let x0 = 60; x0 < WIDTH; x0 += GAP) {
+        const near = pointerX === null ? 0 : Math.exp(-Math.pow(x0 + 40 - pointerX, 2) / (2 * 110 * 110));
+        const height = 1 + near * 0.7;
+        BEAT.forEach(([dx, dy]) => { d += ` L${x0 + dx} ${(BASE + dy * height).toFixed(1)}`; });
+      }
+      d += ` L${WIDTH} ${BASE}`;
+      lines.forEach(line => line.setAttribute('d', d));
+    };
+    drawPulse();
+
+    if (!reduceMotion && finePointer) {
+      const area = pulse.closest('.hero') || pulse;
+      let queued = false;
+      area.addEventListener('pointermove', e => {
+        const r = pulse.getBoundingClientRect();
+        pointerX = (e.clientX - r.left) / r.width * WIDTH;
+        if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; drawPulse(); }); }
+      });
+      area.addEventListener('pointerleave', () => { pointerX = null; drawPulse(); });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Cards lean towards a mouse pointer, with a soft light where it points
+  // ------------------------------------------------------------------
+  if (!reduceMotion && finePointer) {
+    document.querySelectorAll('.explore__card, .drive, .team__card').forEach(card => {
+      card.classList.add('tilt');
+      card.addEventListener('pointermove', e => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width - 0.5;
+        const y = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `perspective(800px) rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 7).toFixed(2)}deg) translateY(-3px)`;
+        card.style.setProperty('--glow-x', ((x + 0.5) * 100).toFixed(1) + '%');
+        card.style.setProperty('--glow-y', ((y + 0.5) * 100).toFixed(1) + '%');
+      });
+      card.addEventListener('pointerleave', () => { card.style.transform = ''; });
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Step pictures draw their outlines, then their shapes fill in: when the
+  // section first comes into view and each time another tab is opened
+  // ------------------------------------------------------------------
+  function drawArt(svg) {
+    if (!svg || reduceMotion || !svg.animate) return;
+    // The first three shapes are the picture's background card and decorative circles
+    [...svg.querySelectorAll('path, rect, circle')].slice(3).forEach((shape, i) => {
+      shape.getAnimations().forEach(a => a.cancel());
+      const delay = i * 70;
+      const stroke = shape.getAttribute('stroke');
+      const fill = shape.getAttribute('fill');
+
+      if (stroke && stroke !== 'none' && !shape.hasAttribute('stroke-dasharray')) {
+        const length = shape.getTotalLength();
+        shape.animate([
+          { strokeDasharray: `${length} ${length}`, strokeDashoffset: length },
+          { strokeDasharray: `${length} ${length}`, strokeDashoffset: 0 }
+        ], { duration: 700, delay, easing: 'cubic-bezier(.2, .7, .2, 1)', fill: 'backwards' });
+      }
+      if (fill && fill !== 'none') {
+        shape.animate([{ fillOpacity: 0 }, { fillOpacity: 1 }], { duration: 450, delay: delay + 300, fill: 'backwards' });
+      }
+      if (shape.hasAttribute('stroke-dasharray')) {
+        shape.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, delay: delay + 300, fill: 'backwards' });
+      }
+    });
+  }
+
+  if ('IntersectionObserver' in window) {
+    const artIo = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      drawArt(entry.target.querySelector('.steps__panel:not([hidden]) .steps__svg'));
+      artIo.unobserve(entry.target);
+    }), { threshold: 0.35 });
+    document.querySelectorAll('[data-steps]').forEach(root => artIo.observe(root));
+  }
+
+  // ------------------------------------------------------------------
   // Step-tabs (What UHAI does): click/tap, hover with a mouse, arrow keys
   // ------------------------------------------------------------------
   document.querySelectorAll('[data-steps]').forEach(root => {
@@ -118,6 +282,7 @@ const BLOOD_STOCK = {
         t.tabIndex = on ? 0 : -1;
         panel.hidden = !on;
         panel.classList.toggle('is-entering', on && !reduceMotion);
+        if (on) drawArt(panel.querySelector('.steps__svg'));
       });
       if (focus) tab.focus();
     }
@@ -136,29 +301,51 @@ const BLOOD_STOCK = {
   });
 
   // ------------------------------------------------------------------
-  // Blood supply widget (values from BLOOD_STOCK at the top of this file)
+  // Monthly collections (home page). Figures come from reported_figures.js,
+  // the same file the dashboard Overview reads.
   // ------------------------------------------------------------------
-  const stock = document.querySelector('[data-stock]');
-  if (stock) {
-    const pills = [...stock.querySelectorAll('[data-group]')];
+  const collect = document.querySelector('[data-collect]');
+  if (collect && window.UhaiReported) {
+    const months = window.UhaiReported.monthly;
+    const total = window.UhaiReported.monthlyTotal;
+    const max = Math.max(...months.map(m => m.collection));
+    const fmt = n => n.toLocaleString('en-US');
     const out = {
-      group: stock.querySelector('[data-stock-group]'),
-      units: stock.querySelector('[data-stock-units]'),
-      status: stock.querySelector('[data-stock-status]'),
-      label: stock.querySelector('[data-stock-label]')
+      period: collect.querySelector('[data-collect-period]'),
+      units: collect.querySelector('[data-collect-units]')
+    };
+    const bars = collect.querySelector('[data-collect-bars]');
+    const firstMonth = months[0].month, lastMonth = months[months.length - 1].month;
+
+    bars.innerHTML = months.map((m, i) => `
+      <button type="button" class="collect__bar" style="--h:${(m.collection / max).toFixed(3)};--i:${i}"
+              aria-label="${esc(m.month)}: ${fmt(m.collection)} units" aria-pressed="false" data-i="${i}">
+        <span class="collect__fill"></span><span class="collect__label">${esc(m.month.slice(0, 3))}</span>
+      </button>`).join('');
+    const buttons = [...bars.querySelectorAll('.collect__bar')];
+
+    const show = i => {
+      buttons.forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+      bars.classList.toggle('has-pick', i !== null);
+      out.period.textContent = i === null ? `${firstMonth} to ${lastMonth}` : months[i].month;
+      out.units.textContent = fmt(i === null ? total : months[i].collection);
     };
 
-    function showGroup(group) {
-      const d = BLOOD_STOCK[group] || { units: null, status: '' };
-      pills.forEach(p => p.setAttribute('aria-pressed', String(p.dataset.group === group)));
-      out.group.textContent = group;
-      out.units.textContent = d.units === null ? '–' : Number(d.units).toLocaleString('en-US');
-      out.label.textContent = d.status ? 'Supply: ' + d.status : '';
-      out.status.dataset.level = String(d.status).toLowerCase();
-    }
+    buttons.forEach((b, i) => {
+      b.addEventListener('click', () => show(i));
+      b.addEventListener('focus', () => show(i));
+      if (finePointer) b.addEventListener('pointerenter', () => show(i));
+      b.addEventListener('keydown', e => {
+        const go = j => { e.preventDefault(); buttons[(j + buttons.length) % buttons.length].focus(); };
+        if (e.key === 'ArrowRight') go(i + 1);
+        if (e.key === 'ArrowLeft') go(i - 1);
+      });
+    });
+    if (finePointer) bars.addEventListener('pointerleave', () => { if (!bars.contains(document.activeElement)) show(null); });
+    bars.addEventListener('focusout', e => { if (!bars.contains(e.relatedTarget)) show(null); });
 
-    pills.forEach(p => p.addEventListener('click', () => showGroup(p.dataset.group)));
-    showGroup('O+');
+    show(null);
+    collect.hidden = false;
   }
 
   // ------------------------------------------------------------------
@@ -344,8 +531,8 @@ const BLOOD_STOCK = {
         if (res.ok && body.ok) {
           form.reset();
           setStatus('ok', body.delivered
-            ? '<b>Thank you — your message has been sent.</b> UHAI will reply by email.'
-            : '<b>Thank you — your message has been received (reference #' + body.reference + ').</b>' +
+            ? '<b>Thank you. Your message has been sent.</b> UHAI will reply by email.'
+            : '<b>Thank you. Your message has been received (reference #' + body.reference + ').</b>' +
               ' The UHAI team will reply by email.');
         } else if (body.errors) {
           showErrors(body.errors);

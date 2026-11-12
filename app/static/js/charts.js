@@ -90,12 +90,30 @@ window.UhaiCharts = (function () {
     d.plugins.legend.labels.padding = 16;
     d.plugins.legend.labels.color = COLORS.ink;
     d.plugins.legend.labels.font = { size: 13 };
-    d.plugins.tooltip.backgroundColor = '#2A0B26';
-    d.plugins.tooltip.padding = 12;
-    d.plugins.tooltip.cornerRadius = 8;
-    d.plugins.tooltip.boxPadding = 5;
-    d.plugins.tooltip.titleFont = { size: 13, weight: '600' };
-    d.plugins.tooltip.bodyFont = { size: 13 };
+    // Tooltips: dark and rounded, with the exact figure for each series
+    const tip = d.plugins.tooltip;
+    tip.backgroundColor = 'rgba(31, 8, 28, .96)';
+    tip.borderColor = 'rgba(255, 255, 255, .08)';
+    tip.borderWidth = 1;
+    tip.padding = { x: 14, y: 12 };
+    tip.cornerRadius = 12;
+    tip.caretSize = 6;
+    tip.boxPadding = 6;
+    tip.usePointStyle = true;
+    tip.titleColor = '#F6D7EE';
+    tip.titleFont = { size: 12, weight: '600' };
+    tip.titleMarginBottom = 8;
+    tip.bodyColor = '#FFFFFF';
+    tip.bodyFont = { size: 13.5, weight: '500' };
+    tip.bodySpacing = 6;
+    tip.footerColor = '#F6D7EE';
+    tip.footerFont = { size: 12.5, weight: '600' };
+    tip.footerMarginTop = 8;
+    tip.animation = { duration: reduceMotion ? 0 : 150 };
+    // Smooth hover: points grow, bars and lines respond quickly
+    d.elements.point.hoverRadius = 7;
+    d.elements.point.hoverBorderWidth = 3;
+    d.transitions.active.animation.duration = reduceMotion ? 0 : 200;
   }
 
   // ------------------------------------------------------------------
@@ -211,7 +229,7 @@ window.UhaiCharts = (function () {
     return Object.assign({
       grid: { color: COLORS.grid, drawTicks: false },
       border: { display: false },
-      ticks: { padding: 8, color: COLORS.muted, font: { size: 12.5 }, callback: v => tick(v, unit) },
+      ticks: { padding: 8, color: COLORS.muted, font: { size: 12 }, callback: v => tick(v, unit) },
       title: title ? { display: true, text: title, color: COLORS.muted, font: { size: 12.5, weight: '600' } } : undefined
     }, extra || {});
   }
@@ -220,7 +238,7 @@ window.UhaiCharts = (function () {
     return Object.assign({
       grid: { display: false },
       border: { color: '#D8CFD6' },
-      ticks: { color: COLORS.ink, font: { size: 12.5 }, autoSkip: true, maxRotation: 0 },
+      ticks: { color: COLORS.ink, font: { size: 12 }, autoSkip: true, maxRotation: 0 },
       title: title ? { display: true, text: title, color: COLORS.muted, font: { size: 12.5, weight: '600' } } : undefined
     }, extra || {});
   }
@@ -348,7 +366,7 @@ window.UhaiCharts = (function () {
 
     const valueAxis = axis(spec.valueTitle, spec.unit, { beginAtZero: spec.beginAtZero !== false });
     if (spec.integer) valueAxis.ticks.precision = 0;   // counts: no 0.5 ticks
-    const catAxis = categoryAxis(spec.categoryTitle, horizontal ? { ticks: { color: COLORS.ink, font: { size: 12.5 }, autoSkip: false } } : {});
+    const catAxis = categoryAxis(spec.categoryTitle, horizontal ? { ticks: { color: COLORS.ink, font: { size: 12 }, autoSkip: false } } : {});
 
     return draw(canvas, {
       type: spec.type === 'line' || spec.type === 'area' ? 'line' : 'bar',

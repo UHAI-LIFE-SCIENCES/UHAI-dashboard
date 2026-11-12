@@ -48,6 +48,16 @@ window.UhaiReported = (function () {
     { quarter: 'Q4', collection: 5944, counselling: 6928, cme: 3, sessions: 3, apheretic: 161, postDonation: 5944 }
   ];
 
+  // Donor outcomes, FY 2025/26, from the quarterly report above. Everyone given
+  // donor counselling and education is counted as an interested donor; those
+  // who did not donate are counselled minus collected (mostly found not
+  // eligible). Add `reasons` here once RBTC reports why people were deferred.
+  const donorOutcomes = quarterlyReport.map(r => ({
+    quarter: r.quarter, interested: r.counselling, donated: r.collection, notDonated: r.counselling - r.collection
+  }));
+  const notDonatedPct = r => r.interested ? 100 * r.notDonated / r.interested : null;
+  donorOutcomes.forEach(r => { r.notDonatedPct = notDonatedPct(r); });
+
   function totals(rows, keys) {
     return keys.reduce((t, k) => { t[k] = sum(rows, k); return t; }, {});
   }
@@ -59,8 +69,12 @@ window.UhaiReported = (function () {
   const quarterlyTotals = totals(quarterly, ['collection', 'grouping', 'screening', 'components', 'discards']);
   quarterlyTotals.discardPct = discardPct(quarterlyTotals);
 
+  const donorOutcomeTotals = totals(donorOutcomes, ['interested', 'donated', 'notDonated']);
+  donorOutcomeTotals.notDonatedPct = notDonatedPct(donorOutcomeTotals);
+  donorOutcomeTotals.donatedPct = 100 - donorOutcomeTotals.notDonatedPct;
+
   return {
-    monthly, target, quarterly, quarterlyReport,
+    monthly, target, quarterly, quarterlyReport, donorOutcomes, donorOutcomeTotals,
     monthlyTotal: sum(monthly, 'collection'),
     quarterlyTotals,
     quarterlyReportTotals: totals(quarterlyReport, ['collection', 'counselling', 'cme', 'sessions', 'apheretic', 'postDonation'])

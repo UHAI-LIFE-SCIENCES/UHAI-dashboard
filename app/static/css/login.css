@@ -16,14 +16,11 @@
 .lp__form-side { display: flex; flex-direction: column; min-height: 100vh; padding: 32px clamp(24px, 5vw, 64px); }
 .lp__brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: var(--purple-ink); align-self: flex-start; border-radius: 8px; }
 .lp__brand img { height: 46px; width: auto; }
-.lp__brand span { display: flex; flex-direction: column; font: 800 1.15rem/1.1 var(--font-display); letter-spacing: .02em; }
+.lp__brand span { display: flex; flex-direction: column; min-width: 0; font: 800 1.15rem/1.1 var(--font-display); letter-spacing: .02em; }
 .lp__brand small { font: 500 .8rem var(--font); color: var(--muted); letter-spacing: .04em; }
 
 .lp__box { width: 100%; max-width: 340px; margin: auto 0; padding: 40px 0; }
-.lp__title { font-family: var(--lp-heading); font-weight: 600; font-size: 1.6rem; line-height: 1.2; color: var(--purple-ink); margin: 0 0 8px; letter-spacing: -.01em; }
-.lp__lead { margin: 0 0 4px; color: var(--ink-2); }
-.lp__access { margin: 0 0 24px; font-size: .92rem; color: var(--muted); }
-.lp__access span { color: var(--purple); font-weight: 500; }
+.lp__title { font-family: var(--lp-heading); font-weight: 600; font-size: 1.6rem; line-height: 1.2; color: var(--purple-ink); margin: 0 0 24px; letter-spacing: -.01em; }
 
 .lp__error { margin: 0 0 18px; padding: 10px 14px; border-radius: 8px; background: #fdecef; border: 1px solid #f3b8c4; color: #8a0e2c; font-size: .93rem; font-weight: 500; }
 
@@ -53,7 +50,19 @@
   font: 600 1rem var(--font); color: #fff; background: var(--purple); cursor: pointer; transition: background-color .15s;
 }
 .lp__submit:hover { background: var(--purple-deep); }
+/* The other way to log in (code or password): an outlined button under the main one */
+.lp__alt {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; margin-top: 10px;
+  border: 1.5px solid var(--purple); border-radius: 8px; font: 600 1rem var(--font); color: var(--purple);
+  background: #fff; text-decoration: none; transition: background-color .15s;
+}
+.lp__alt:hover { background: var(--purple-light); }
+.lp__alt + .lp__access { margin-top: 16px; }
+.lp__input--code { font-size: 1.3rem; letter-spacing: .3em; text-align: center; }
 .lp__forgot { margin: 14px 0 0; font-size: .92rem; color: var(--muted); }
+.lp__access { margin: 8px 0 0; font-size: .92rem; color: var(--muted); }
+.lp__access a { color: var(--purple); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+.lp__access a:hover { color: var(--purple-deep); }
 
 /* Temporary admin access, shown only until the first admin account exists */
 .lp__bypass { margin: 24px 0 0; }

@@ -156,6 +156,16 @@ PARTNERS = [                           # [deck] "Uhai partners with:"
     ("Business", "Bakeries, beverage and events companies"),
 ]
 
+# Scrolling band under the home-page hero: organisations UHAI works with [deck]
+PARTNER_NAMES = [
+    "Eldoret Regional Blood Transfusion Centre",
+    "Moi Teaching and Referral Hospital",
+    "AMPATH",
+    "Kenya Tissue and Transplant Services",
+    "Innovative Hematology",
+    "Oncology Nurses Chapter",
+]
+
 SDGS = [                               # [deck] [onepager]
     ("3", "Good health and well-being"),
     ("10", "Reduced inequalities"),

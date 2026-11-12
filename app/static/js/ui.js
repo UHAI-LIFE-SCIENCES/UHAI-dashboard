@@ -84,6 +84,47 @@ window.UhaiUI = (function () {
       </div>`;
   }
 
+  // ------------------------------------------------------------------
+  // Summary-card numbers count up from zero when a page opens. Cards that
+  // appear in the first few seconds (after the data loads) count up too;
+  // later re-renders, such as a filter change, show the number at once.
+  // ------------------------------------------------------------------
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let countWatch = null;
+
+  function countValue(el) {
+    const text = el.firstChild;
+    if (!text || text.nodeType !== Node.TEXT_NODE) return;
+    const m = text.textContent.match(/^(\D*?)(\d[\d,]*(?:\.\d+)?)(.*)$/);
+    if (!m) return;
+    const final = text.textContent;
+    const target = parseFloat(m[2].replace(/,/g, ''));
+    const decimals = (m[2].split('.')[1] || '').length;
+    const digits = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
+    const start = performance.now();
+    const tick = now => {
+      if (!text.isConnected) return;
+      const t = Math.min(1, (now - start) / 900);
+      text.textContent = t < 1 ? m[1] + (target * (1 - Math.pow(1 - t, 3))).toLocaleString('en-GB', digits) + m[3] : final;
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function countUpCards(root, windowMs) {
+    if (countWatch) { countWatch.disconnect(); countWatch = null; }
+    if (reduceMotion || !('MutationObserver' in window)) return;
+    const run = () => root.querySelectorAll('.kcard__value:not([data-counted])').forEach(el => {
+      el.dataset.counted = '1';
+      countValue(el);
+    });
+    run();
+    const watch = new MutationObserver(run);
+    watch.observe(root, { childList: true, subtree: true });
+    countWatch = watch;
+    setTimeout(() => { watch.disconnect(); if (countWatch === watch) countWatch = null; }, windowMs || 4000);
+  }
+
   function note(html, tone) {
     return `<p class="note ${tone ? 'note--' + tone : ''}">${html}</p>`;
   }
@@ -328,7 +369,7 @@ window.UhaiUI = (function () {
   }
 
   return {
-    esc, num, fmt, dateLabel, sectionHead, statRow, statGroups, note, state, tableHtml, downloadCsv, card, bindCards,
+    esc, num, fmt, dateLabel, sectionHead, statRow, statGroups, countUpCards, note, state, tableHtml, downloadCsv, card, bindCards,
     filterBar, reopen, defaultFilters, closePopover, FILTER_LABELS
   };
 })();

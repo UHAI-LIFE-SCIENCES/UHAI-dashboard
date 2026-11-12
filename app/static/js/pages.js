@@ -229,14 +229,30 @@ window.UhaiPages = (function () {
       const withTotal = (label, totals, key) => Object.assign({ [key]: label }, totals);
 
       const pMonthly = panel('Whole blood collections', 'RBTC Eldoret, July 2025 – June 2026', { height: 320, table: true });
-      const pQuarter = panel('Collection, grouping, screening and components', 'RBTC Eldoret, FY 2024/25', { height: 340, table: true });
+      const pQuarter = panel('From screening to components', 'RBTC Eldoret, FY 2024/25', { height: 340, table: true });
       const pDiscard = panel('Discards', 'RBTC Eldoret, FY 2024/25', { height: 340, table: true });
-      const pReport = panel('Quarterly report', 'RBTC Eldoret, FY 2025/26', { height: 320, table: true });
+      const DO = R.donorOutcomes, DOT = R.donorOutcomeTotals;
+      const pDonors = panel('Interested donors: donated or not', 'RBTC Eldoret, FY 2025/26', { height: 320, table: true });
+      const pReport = panel('Collection, counselling and outreach', 'RBTC Eldoret, FY 2025/26', { height: 320, table: true });
+
+      // Sections of the Overview; the switcher shows one of them, or all
+      const SECTIONS = [['all', 'All'], ['collections', 'Collections & target'], ['screening', 'Screening & discards'],
+        ['donors', 'Donor outcomes'], ['report', 'Quarterly report']];
+      const picked = SECTIONS.some(([k]) => k === ctx.state.section) ? ctx.state.section : 'all';
+      const band = (key, title, body, primary) => `
+        <section class="ov-band ${primary ? 'ov-band--primary' : ''}" data-band="${key}" aria-labelledby="band-${key}">
+          <header class="ov-band__head"><h2 class="ov-band__title" id="band-${key}">${title}</h2></header>
+          ${body}
+        </section>`;
 
       // Cards that cover the same period sit together under one period label
       ctx.el.innerHTML = `<div class="ov">
-        ${U.sectionHead({ title: 'Overview', lead: 'Blood collection at RBTC Eldoret, and progress towards the national target.' })}
-        ${U.statGroups([
+        ${U.sectionHead({
+          title: 'Overview', lead: 'Blood collection at RBTC Eldoret, and progress towards the national target.',
+          right: `<div class="seg ov__switch" role="group" aria-label="Show">${SECTIONS.map(([k, l]) =>
+            `<button type="button" class="seg__btn ${k === picked ? 'is-on' : ''}" aria-pressed="${k === picked}" data-section="${k}">${l}</button>`).join('')}</div>`
+        })}
+        ${band('collections', 'Collections &amp; target', `${U.statGroups([
           {
             period: 'FY 2025/26 · July 2025 – June 2026 · RBTC Eldoret', span: 2,
             cards: [{ label: 'Whole blood collected', value: n0(R.monthlyTotal), unit: 'units', note: '12 months, July to June' }]
@@ -248,24 +264,36 @@ window.UhaiPages = (function () {
               note: `${n0(T.collected)} of ${n0(T.need)} units`,
               bar: { value: T.achievementPct, label: 'Achievement of target (projected) donations' }
             }]
-          },
+          }
+        ])}
+        ${pMonthly.html}`, true)}
+        ${band('screening', 'Screening &amp; discards', `${U.statGroups([
           {
             period: 'FY 2024/25 · Q1–Q4 · RBTC Eldoret', span: 4,
             cards: [
               { label: 'Total collected', value: n0(QT.collection), unit: 'units' },
-              { label: 'Total screened', value: n0(QT.screening), unit: 'units' },
+              { label: 'Donors screened', value: n0(QT.screening), unit: 'units' },
               { label: 'Total discarded', value: n0(QT.discards), unit: 'units', alert: true },
               { label: 'Discard rate', value: pct(QT.discardPct), note: `${n0(QT.discards)} of ${n0(QT.collection)} units collected`, alert: true }
             ]
           }
         ])}
-        ${pMonthly.html}
-        <h2 class="ov__title">Eldoret quarterly collections, screening and discards</h2>
         <div class="grid-main">
           ${pQuarter.html}
           ${pDiscard.html}
-        </div>
-        ${pReport.html}
+        </div>`)}
+        ${band('donors', 'Donor outcomes', `${U.statGroups([
+          {
+            period: 'FY 2025/26 · Q1–Q4 · RBTC Eldoret', span: 4,
+            cards: [
+              { label: 'Interested donors (counselled)', value: n0(DOT.interested), unit: 'people' },
+              { label: 'Convinced to donate', value: n0(DOT.donated), unit: 'donors', note: `${pct(DOT.donatedPct)} of interested donors` },
+              { label: 'Did not donate', value: n0(DOT.notDonated), unit: 'people', alert: true }
+            ]
+          }
+        ])}
+        ${pDonors.html}`)}
+        ${band('report', 'Quarterly report', pReport.html)}
       </div>`;
       bindPanelTabs(ctx.el);
 
@@ -277,14 +305,14 @@ window.UhaiPages = (function () {
       });
 
       reportedPanel(ctx.el, {
-        pn: pQuarter, title: 'Eldoret quarterly collection, grouping, screening and components FY 2024-25', rows: R.quarterly, label: r => r.quarter,
+        pn: pQuarter, title: 'Eldoret quarterly screening, collection, grouping and components FY 2024-25', rows: R.quarterly, label: r => r.quarter,
         series: [
-          { name: 'Blood collection', key: 'collection' }, { name: 'Blood grouping', key: 'grouping' },
-          { name: 'Blood screening', key: 'screening' }, { name: 'Components', key: 'components' }
+          { name: '1. Donors screened', key: 'screening' }, { name: '2. Blood collected', key: 'collection' },
+          { name: '3. Blood grouped', key: 'grouping' }, { name: '4. Components made', key: 'components' }
         ],
-        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'collection', label: 'Blood collection', num: true },
-          { key: 'grouping', label: 'Blood grouping', num: true }, { key: 'screening', label: 'Blood screening', num: true },
-          { key: 'components', label: 'Components', num: true }, { key: 'discards', label: 'Discards', num: true }],
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'screening', label: 'Donors screened', num: true },
+          { key: 'collection', label: 'Blood collected', num: true }, { key: 'grouping', label: 'Blood grouped', num: true },
+          { key: 'components', label: 'Components made', num: true }, { key: 'discards', label: 'Discards', num: true }],
         total: withTotal('Total', QT, 'quarter')
       });
 
@@ -295,13 +323,28 @@ window.UhaiPages = (function () {
         total: { quarter: 'Total', collection: QT.collection, discards: QT.discards, discardPct: QT.discardPct },
         draw: canvas => C.barLine(canvas, {
           labels: R.quarterly.map(r => r.quarter),
-          bars: { name: 'Discards', values: R.quarterly.map(r => r.discards), unit: 'units', title: 'Units' },
-          line: { name: '% of collection', values: R.quarterly.map(r => r.discardPct), unit: '%', title: '% of collection' }
+          bars: { name: '% of collection discarded', values: R.quarterly.map(r => r.discardPct), unit: '%', title: '% of collection' },
+          line: { name: 'Units discarded', values: R.quarterly.map(r => r.discards), unit: 'units', title: 'Units' }
         })
       });
 
       reportedPanel(ctx.el, {
-        pn: pReport, title: 'Eldoret quarterly report FY 2025-26', rows: R.quarterlyReport, label: r => r.quarter,
+        pn: pDonors, title: 'Eldoret interested donors, donated or not FY 2025-26', rows: DO, label: r => r.quarter,
+        cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'interested', label: 'Interested (counselled)', num: true },
+          { key: 'donated', label: 'Donated', num: true }, { key: 'notDonated', label: 'Did not donate', num: true },
+          { key: 'notDonatedPct', label: '% did not donate', num: true, unit: '%' }],
+        total: Object.assign({ quarter: 'Total' }, DOT),
+        draw: canvas => C.stacked(canvas, {
+          categories: DO.map(r => r.quarter), unit: 'people', valueTitle: 'People',
+          series: [
+            { label: 'Donated', values: DO.map(r => r.donated), color: C.COLORS.purple },
+            { label: 'Did not donate', values: DO.map(r => r.notDonated), color: C.COLORS.pink }
+          ]
+        })
+      });
+
+      reportedPanel(ctx.el, {
+        pn: pReport, title: 'Eldoret collection, counselling and outreach FY 2025-26', rows: R.quarterlyReport, label: r => r.quarter,
         series: [{ name: 'Whole blood collection', key: 'collection' }, { name: 'Blood donor counselling & education', key: 'counselling' }],
         cols: [{ key: 'quarter', label: 'Quarter' }, { key: 'collection', label: 'Whole blood collection', num: true },
           { key: 'counselling', label: 'Blood donor counselling & education', num: true }, { key: 'cme', label: 'Continuous medical education', num: true },
@@ -309,6 +352,18 @@ window.UhaiPages = (function () {
           { key: 'postDonation', label: 'Post donation care', num: true }],
         total: withTotal('Total', R.quarterlyReportTotals, 'quarter')
       });
+
+      const showSection = key => {
+        ctx.state.section = key;
+        ctx.el.querySelectorAll('[data-section]').forEach(b => {
+          const on = b.dataset.section === key;
+          b.classList.toggle('is-on', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+        ctx.el.querySelectorAll('[data-band]').forEach(sec => { sec.hidden = key !== 'all' && sec.dataset.band !== key; });
+      };
+      ctx.el.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => showSection(b.dataset.section)));
+      showSection(picked);
 
       return { update() {} };
     }
